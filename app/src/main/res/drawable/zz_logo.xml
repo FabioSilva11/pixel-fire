@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por tools/svg2vd.py a partir de docs/brand/svg. Nao edite a mao. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFA8FF3E"
+        android:pathData="M54,26 L80,40 L54,54 L28,40 z" />
+    <path
+        android:fillColor="#FF5DA81E"
+        android:pathData="M28,40 L54,54 L54,84 L28,70 z" />
+    <path
+        android:fillColor="#FF3B7A12"
+        android:pathData="M54,54 L80,40 L80,70 L54,84 z" />
+    <path
+        android:fillColor="#FFFF3D3D"
+        android:pathData="M54,34 L60,40 L54,46 L48,40 z" />
+    <path
+        android:strokeColor="#FFF4F7FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M54,12v9M54,87v9M12,54h9M87,54h9" />
+    <path
+        android:strokeColor="#FFA8FF3E"
+        android:strokeWidth="3"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter"
+        android:strokeAlpha="0.45"
+        android:pathData="M30,22A42,42 0 0 1 78,22M30,86A42,42 0 0 0 78,86" />
+</vector>

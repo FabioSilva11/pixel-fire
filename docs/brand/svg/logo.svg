@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <title>Emblema Zombie Zone</title>
+  <polygon points="54,26 80,40 54,54 28,40" fill="#A8FF3E"/>
+  <polygon points="28,40 54,54 54,84 28,70" fill="#5DA81E"/>
+  <polygon points="54,54 80,40 80,70 54,84" fill="#3B7A12"/>
+  <polygon points="54,34 60,40 54,46 48,40" fill="#FF3D3D"/>
+  <path d="M54,12v9M54,87v9M12,54h9M87,54h9" fill="none" stroke="#F4F7FF" stroke-width="4" stroke-linecap="square"/>
+  <path d="M30,22A42,42 0 0 1 78,22M30,86A42,42 0 0 0 78,86" fill="none" stroke="#A8FF3E" stroke-opacity="0.45" stroke-width="3"/>
+</svg>

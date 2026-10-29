@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por tools/svg2vd.py a partir de docs/brand/svg. Nao edite a mao. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <path
+        android:fillColor="#FF111A2E"
+        android:strokeColor="#FFFFC83D"
+        android:strokeWidth="3"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter"
+        android:pathData="M30,3 L66,3 L93,30 L93,66 L66,93 L30,93 L3,66 L3,30 z" />
+    <path
+        android:strokeColor="#FFA8FF3E"
+        android:strokeWidth="2"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter"
+        android:strokeAlpha="0.6"
+        android:pathData="M13,48 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 z" />
+    <path
+        android:strokeColor="#FFF4F7FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M48,9v7M48,80v7M9,48h7M80,48h7" />
+    <path
+        android:fillColor="#FFA8FF3E"
+        android:pathData="M26,36h20v4h-20z M42,40h4v4h-4z M38,44h4v4h-4z M34,48h4v4h-4z M30,52h4v4h-4z M26,56h4v4h-4z M26,60h20v4h-20z M50,36h20v4h-20z M66,40h4v4h-4z M62,44h4v4h-4z M58,48h4v4h-4z M54,52h4v4h-4z M50,56h4v4h-4z M50,60h20v4h-20z" />
+    <path
+        android:strokeColor="#FFFFC83D"
+        android:strokeWidth="3"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter"
+        android:pathData="M30,70h36" />
+</vector>

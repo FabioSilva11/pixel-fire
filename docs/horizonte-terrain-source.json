@@ -1,0 +1,26 @@
+{
+  "source_project": "horizonte",
+  "source_revision": "local snapshot 2026-10-24",
+  "source_directory": "C:\\Users\\kirit\\Desktop\\horizonte\\app\\src\\main\\cpp\\horizonte",
+  "files": {
+    "terrain.h": "dd0b774fbcd09000761a7af23cc49f68f0f5adfebd4dedfadc6f2b0e4cb82d7a",
+    "terrain.cpp": "d818045cf8c6e85e7f0ea0e5bba80344671d1e8cf340a04061b5088257cc30a3",
+    "terrain_noise.h": "f6ff61719aae11b53848075f76daa7564192255f045caa121765275c7570dc37",
+    "terrain_noise.cpp": "12892d18cc357e44adad0e21a03effdbe8ef17d33589f6c601e4b4a2cf06adef",
+    "terrain_grid.h": "1317baab0df1c22a45fb73d0e49bc05f3744d4440fe9bf5b20940c66ec8f570a",
+    "chunk_generator.cpp": "986daafea90cb79195c036a1cc0760b0b9d136ac75c2ed77cdf6d9fe01cdf232",
+    "village_generator.cpp": "54237b38782538c97419c1213311dd742c4b957354370af893abb7150d30c3a6",
+    "fluid_physics.cpp": "bc4cfb569b2d17c85f0125be1a148be82ceaa91fa18d69303986ac65d295f4d1",
+    "world_clock.h": "06550da17287920a810826bd4cf520bda212aebfae8ed1f566a01979946c0397",
+    "scene.cpp": "ceaff19ba6dc66ccb9b625cfc42aa2ff3309715059967987f3b65781e955e5e3"
+  },
+  "adaptation": [
+    "namespace hz -> zz::horizonte",
+    "removed unused fixed initial terrain declarations",
+    "block_mapping converts only at engine boundary",
+    "fluid_catalogue adapts original water algorithm to local appended flow IDs; dynamic lava and sand gravity disabled",
+    "world_clock preserves 24000 ticks and source scene sky colors; elapsed time is local to each match"
+  ],
+  "compiler_contract": "-O2 -ffp-contract=off on both ARM32 and ARM64: canonical separate multiply/add, 40/40 original source fixtures agree; see output/precision/REPORT.md",
+  "fixtures": "tests/native/horizonte_fixtures.inc, generated with tests/native/horizonte_oracle.cpp linked against original source"
+}

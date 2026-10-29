@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#08111F</color>
+    <!-- Identidade visual (aditivo): espelha Palette em ui/Ui.kt -->
+    <color name="zz_ink">#060B16</color>
+    <color name="zz_lime">#A8FF3E</color>
+    <color name="zz_danger">#FF3D3D</color>
+    <color name="zz_fam_horde">#FF8A3D</color>
+    <color name="zz_fam_explosive">#FFD23D</color>
+    <color name="zz_fam_toxic">#4FE3A0</color>
+</resources>

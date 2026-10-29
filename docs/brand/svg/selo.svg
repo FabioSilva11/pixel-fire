@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <title>Selo de expedicao</title>
+  <polygon points="30,3 66,3 93,30 93,66 66,93 30,93 3,66 3,30" fill="#111A2E" stroke="#FFC83D" stroke-width="3"/>
+  <circle cx="48" cy="48" r="35" fill="none" stroke="#A8FF3E" stroke-width="2" stroke-opacity="0.6"/>
+  <path d="M48,9v7M48,80v7M9,48h7M80,48h7" fill="none" stroke="#F4F7FF" stroke-width="3" stroke-linecap="square"/>
+  <path d="M26,36h20v4h-20z M42,40h4v4h-4z M38,44h4v4h-4z M34,48h4v4h-4z M30,52h4v4h-4z M26,56h4v4h-4z M26,60h20v4h-20z M50,36h20v4h-20z M66,40h4v4h-4z M62,44h4v4h-4z M58,48h4v4h-4z M54,52h4v4h-4z M50,56h4v4h-4z M50,60h20v4h-20z" fill="#A8FF3E"/>
+  <path d="M30,70h36" fill="none" stroke="#FFC83D" stroke-width="3" stroke-linecap="square"/>
+</svg>

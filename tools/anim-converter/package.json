@@ -1,0 +1,7 @@
+{
+  "name": "zombie-zone-anim-converter",
+  "private": true,
+  "type": "module",
+  "description": "Converte animações FBX do Mixamo para clipes do herói voxel (assets/anims/*.zza).",
+  "dependencies": { "three": "0.180.0" }
+}

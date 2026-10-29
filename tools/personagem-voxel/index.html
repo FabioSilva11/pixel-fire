@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101215">
+  <title>Herói Voxel — protótipo</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0d0f12; --text:#eef0f1; --muted:#8d929a; --line:#2b2e34; --orange:#ffad64; }
+    * { box-sizing:border-box; }
+    html, body { width:100%; height:100%; margin:0; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,-apple-system,"Segoe UI",sans-serif; }
+    body { overflow:hidden; }
+    .app { height:100dvh; display:grid; grid-template-columns:272px minmax(0,1fr); }
+    aside { border-right:1px solid var(--line); background:linear-gradient(180deg,#1a1d21 0%,#13161a 100%); display:flex; flex-direction:column; overflow:auto; z-index:5; }
+    .brand { padding:22px 22px 16px; border-bottom:1px solid var(--line); }
+    .eyebrow { text-transform:uppercase; letter-spacing:3px; color:var(--orange); font-size:10px; font-weight:800; }
+    h1 { font-size:24px; line-height:1.05; letter-spacing:-1px; margin:9px 0 8px; font-weight:800; }
+    .brand p { margin:0; color:#9b9da5; font-size:12px; line-height:1.6; }
+    .panel { padding:14px 16px 10px; border-bottom:1px solid var(--line); }
+    .panel h2 { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#9fa4ab; font-weight:700; margin:0 4px 10px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    button { font:inherit; cursor:pointer; }
+    .btn, .act { color:#c5c9cf; background:#22262b; border:1px solid #353a40; border-radius:9px; transition:background .15s,border-color .15s; }
+    .btn { min-height:38px; padding:6px 8px; font-size:12px; }
+    .btn:hover, .act:hover { background:#30353b; border-color:#59616b; }
+    .btn.active { background:#513923; border-color:#b87942; color:#ffe1bc; }
+    .btn.wide { grid-column:1 / -1; }
+    .act { width:100%; height:36px; display:flex; align-items:center; justify-content:space-between; padding:0 12px; font-size:12px; margin-bottom:6px; }
+    .switch { width:27px; height:15px; display:inline-flex; align-items:center; background:#40464e; border-radius:99px; padding:2px; flex:none; }
+    .switch::after { content:""; display:block; width:11px; height:11px; background:#b2b6bd; border-radius:50%; transition:transform .2s,background .2s; }
+    .act.on .switch { background:#986139; }
+    .act.on .switch::after { background:#ffbf80; transform:translateX(12px); }
+    .drop { border:1px dashed #4a5058; border-radius:10px; padding:10px; font-size:11px; color:#a9aeb6; line-height:1.55; text-align:center; }
+    .drop.over { border-color:#d18d52; background:#2a2118; }
+    .drop label { color:#ffd8af; text-decoration:underline; cursor:pointer; }
+    #clips { display:flex; flex-direction:column; gap:5px; margin-top:8px; }
+    #clips .btn { text-align:left; }
+    .tip { padding:14px 20px 20px; color:#89909a; font-size:11px; line-height:1.7; }
+    .tip b { color:#d9dde2; }
+    .tip ol { margin:6px 0 0; padding-left:18px; }
+    main { position:relative; min-width:0; overflow:hidden; background:radial-gradient(ellipse at 48% 42%,#25292e 0%,#171a1f 44%,#0c0e12 100%); }
+    #viewport { position:absolute; inset:0; outline:none; }
+    #viewport canvas { display:block; width:100%; height:100%; }
+    .status { position:absolute; left:22px; top:18px; border:1px solid #ffffff22; border-radius:30px; background:#101317b9; padding:8px 13px; font-size:11px; color:#dfe3e8; pointer-events:none; }
+    .dot { display:inline-block; background:#79ce9b; width:6px; height:6px; border-radius:50%; margin-right:8px; }
+    .titleBlock { position:absolute; left:26px; bottom:24px; pointer-events:none; }
+    .titleBlock .kicker { color:var(--orange); font-weight:700; letter-spacing:2px; font-size:10px; margin-bottom:6px; }
+    .titleBlock strong { font-size:22px; letter-spacing:-.8px; font-weight:800; display:block; }
+    .titleBlock p { margin:5px 0 0; color:#a8abb1; font-size:12px; max-width:520px; }
+    #sheet { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#0d0f12; z-index:3; cursor:zoom-out; }
+    .info { position:absolute; right:24px; bottom:24px; text-align:right; color:#a2a6af; font-size:11px; line-height:1.7; pointer-events:none; }
+    .info strong { color:#e5e9ed; }
+    @media (max-width:850px) {
+      .app { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr) 46%; }
+      aside { order:2; border-right:0; border-top:1px solid var(--line); }
+      .brand, .tip { display:none; }
+      main { order:1; }
+      .info { display:none; }
+      .titleBlock { left:16px; bottom:14px; }
+    }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+                   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/" } }
+  </script>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="eyebrow">Zombie Zone / protótipo</div>
+      <h1>Herói <span style="color:var(--orange)">VOXEL</span></h1>
+      <p>Esqueleto humano com os 67 ossos do Mixamo, mãos com cinco dedos articulados e a AK-47 voxel presa nas duas mãos.</p>
+    </div>
+    <section class="panel"><h2>Animação</h2><div class="grid2" id="anims">
+      <button class="btn active" data-anim="ready">Arma pronta</button>
+      <button class="btn" data-anim="aim">Mirando</button>
+      <button class="btn" data-anim="walk">Andando</button>
+      <button class="btn" data-anim="run">Correndo</button>
+      <button class="btn" data-anim="unarmed">Sem arma</button>
+      <button class="btn" data-anim="tpose">T-pose</button>
+    </div></section>
+    <section class="panel"><h2>Teste manual</h2><div class="grid2">
+      <button class="btn" id="shoot">Disparo único</button><button class="btn" id="reload">Recarregar</button>
+      <button class="btn" id="pause">Pausar</button><button class="btn" id="advance">+1 quadro (30 fps)</button>
+    </div>
+      <label style="display:block;font-size:11px;margin-top:10px">Tempo (s) <input id="previewTime" type="number" min="0" step="0.03333333333333333" value="0" style="width:90px"></label>
+      <label style="display:block;font-size:11px;margin-top:8px">Recarga <input id="reloadScrub" aria-label="Progresso da recarga" type="range" min="0" max="1" step="0.001" value="0" style="width:100%"></label>
+    </section>
+    <section class="panel"><h2>Animações do Mixamo</h2>
+      <div class="grid2"><button class="btn wide" id="demo">Testar com animações Mixamo (X Bot)</button></div>
+      <div class="drop" id="drop" style="margin-top:8px">Arraste aqui um <b>.fbx do Mixamo</b><br>ou <label for="file">escolha o arquivo</label>
+        <input id="file" type="file" accept=".fbx,.glb,.gltf" multiple hidden></div>
+      <div id="clips"></div>
+    </section>
+    <section class="panel"><h2>Opções</h2>
+      <button class="act on" id="ik"><span>Mãos presas na arma (IK)</span><span class="switch"></span></button>
+      <button class="act on" id="inplace"><span>Animação no lugar</span><span class="switch"></span></button>
+      <button class="act" id="bones"><span>Mostrar esqueleto</span><span class="switch"></span></button>
+      <button class="act" id="slow"><span>Câmera lenta</span><span class="switch"></span></button>
+    </section>
+    <section class="panel"><h2>Câmera</h2><div class="grid2" id="views">
+      <button class="btn active" data-view="persp">3/4</button>
+      <button class="btn" data-view="front">Frente</button>
+      <button class="btn" data-view="side">Lado</button>
+      <button class="btn" data-view="back">Costas</button>
+      <button class="btn" data-view="shoulder">Ombro (jogo)</button>
+      <button class="btn" data-view="fps">1ª pessoa</button>
+      <button class="btn wide" id="sheetBtn">Folha de poses (6 vistas)</button>
+    </div></section>
+    <div class="tip"><b>Como trazer animações do Mixamo</b>
+      <ol>
+        <li>Entre em mixamo.com com a sua conta Adobe.</li>
+        <li>Escolha uma animação (ex.: <i>Rifle Idle</i>, <i>Rifle Walk</i>, <i>Rifle Run</i>, <i>Firing Rifle</i>).</li>
+        <li>Download → Format <b>FBX Binary</b>, Skin <b>Without Skin</b>, 30 FPS.</li>
+        <li>Arraste o .fbx para cá: os ossos <i>mixamorig</i> são ligados pelo nome.</li>
+      </ol>
+    </div>
+  </aside>
+  <main>
+    <div id="viewport" tabindex="0" aria-label="Personagem voxel 3D animado segurando uma AK-47"></div>
+    <img id="sheet" alt="Folha de poses do personagem voxel" hidden>
+    <div class="status"><span class="dot"></span><span id="status">Montando o personagem…</span></div>
+    <div class="titleBlock"><div class="kicker" id="kicker">ANIMAÇÃO PROCEDURAL</div><strong id="animName">Arma pronta</strong><p id="animHint">Arraste para girar, role para aproximar.</p></div>
+    <div class="info" id="info"></div>
+  </main>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ============================================================================ cena
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.55;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+viewport.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = .07;
+controls.minDistance = 12;
+controls.maxDistance = 120;
+controls.target.set(0, 17, 0);
+
+scene.add(new THREE.HemisphereLight(0xe7efff, 0x443321, 2.2));
+const key = new THREE.DirectionalLight(0xffe0b5, 3.2);
+key.position.set(-18, 40, 30);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left:-30, right:30, top:40, bottom:-10, near:1, far:120 });
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xaac6e5, 1.6); fill.position.set(20, 12, -30); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 1.0); rim.position.set(30, 10, 20); scene.add(rim);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(40, 48), new THREE.MeshStandardMaterial({ color:0x1d2126, roughness:1 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+const grid = new THREE.GridHelper(80, 40, 0x3a4048, 0x2a2f35);
+grid.position.y = 0.02;
+scene.add(grid);
+
+// ============================================================================ texturas pixeladas
+// Cada face recebe um canvas próprio com 2 texels por pixel do personagem (detalhe de meio pixel).
+const TEX = 2;
+function hash(x, y, s) { let z = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return z - Math.floor(z); }
+const texCache = new Map();
+function faceTexture(key, w, h, paint) {
+  const k = key + ':' + w + 'x' + h;
+  if (texCache.has(k)) return texCache.get(k);
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const g = c.getContext('2d');
+  paint(g, c.width, c.height);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestFilter;
+  t.generateMipmaps = false;
+  texCache.set(k, t);
+  return t;
+}
+function px(g, x, y, color) { g.fillStyle = color; g.fillRect(x, y, 1, 1); }
+function noise(g, w, h, pal, seed, block = 1) {
+  for (let y = 0; y < h; y += block) for (let x = 0; x < w; x += block) {
+    const v = hash(x, y, seed);
+    g.fillStyle = pal[v > .9 ? 3 : v > .66 ? 2 : v > .25 ? 1 : 0];
+    g.fillRect(x, y, block, block);
+  }
+}
+const PAL = {
+  skin:   ['#c98a62', '#d49870', '#dca47c', '#e3b089'],
+  hair:   ['#3f2214', '#552e1b', '#653822', '#76452a'],
+  jacket: ['#1f2125', '#26292d', '#2e3136', '#383b42'],
+  shirt:  ['#d9d9d9', '#e6e6e6', '#efefef', '#f7f7f7'],
+  pants:  ['#212327', '#282a2f', '#2f3237', '#383b41'],
+  shoe:   ['#141518', '#1b1c20', '#232529', '#2b2d32'],
+  white:  ['#e8e8e8', '#f0f0f0', '#f6f6f6', '#ffffff'],
+};
+// Jaqueta escura com xadrez discreto (blocos 2x2 claros/escuros), como na referência.
+function paintJacket(g, w, h, seed) {
+  noise(g, w, h, PAL.jacket, seed);
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2) {
+    const v = hash(x * .5, y * .5, seed + 9);
+    if (v > .8) { g.fillStyle = v > .94 ? '#474b53' : '#373a41'; g.fillRect(x, y, 2, 2); }
+    else if (v < .1) { g.fillStyle = '#18191c'; g.fillRect(x, y, 2, 2); }
+  }
+}
+function paintPants(g, w, h, seed) {
+  noise(g, w, h, PAL.pants, seed);
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 3) {
+    const v = hash(x, y, seed + 3);
+    if (v > .86) { g.fillStyle = '#43474e'; g.fillRect(x, y, 3, 2); }
+    else if (v < .1) { g.fillStyle = '#1a1b1e'; g.fillRect(x, y, 2, 2); }
+  }
+}
+const P = {
+  skin: (g, w, h) => noise(g, w, h, PAL.skin, 21),
+  hair: (g, w, h) => noise(g, w, h, PAL.hair, 31),
+  jacket: (g, w, h) => paintJacket(g, w, h, 41),
+  pants: (g, w, h) => paintPants(g, w, h, 51),
+  shoe: (g, w, h) => noise(g, w, h, PAL.shoe, 61),
+  // Frente do tronco: jaqueta aberta mostrando a camiseta branca no meio.
+  jacketFront: (g, w, h) => {
+    paintJacket(g, w, h, 42);
+    const c = w / 2, open = 2;
+    for (let y = 0; y < h; y++) for (let x = Math.floor(c - open); x < Math.ceil(c + open); x++) px(g, x, y, PAL.shirt[Math.floor(hash(x, y, 7) * 4)]);
+    for (let y = 0; y < h; y++) { px(g, Math.floor(c - open) - 1, y, '#121315'); px(g, Math.ceil(c + open), y, '#121315'); }
+  },
+  // Peito: mesma abertura, gola levantada nas duas linhas de cima.
+  chestFront: (g, w, h) => {
+    P.jacketFront(g, w, h);
+    const c = w / 2;
+    for (let x = 0; x < w; x++) { if (Math.abs(x + .5 - c) > 3) { px(g, x, 0, '#4c5058'); px(g, x, 1, '#3d4048'); } }
+  },
+  hipsFront: (g, w, h) => {
+    paintPants(g, w, h, 52);
+    for (let x = 0; x < w; x++) px(g, x, 0, '#111214');
+    px(g, Math.floor(w / 2) - 1, 0, '#8a8f96'); px(g, Math.floor(w / 2), 0, '#8a8f96');
+  },
+  sleeveCuff: (g, w, h) => {
+    paintJacket(g, w, h, 43);
+    for (let y = 0; y < h; y++) { px(g, w - 3, y, '#d8d8d8'); px(g, w - 2, y, '#ececec'); }
+  },
+  sleeveCuffR: (g, w, h) => {
+    paintJacket(g, w, h, 44);
+    for (let y = 0; y < h; y++) { px(g, 1, y, '#ececec'); px(g, 2, y, '#d8d8d8'); }
+  },
+  shoeSide: (g, w, h) => {
+    noise(g, w, h, PAL.shoe, 62);
+    for (let x = 0; x < w; x++) { px(g, x, h - 1, PAL.white[Math.floor(hash(x, 1, 3) * 4)]); px(g, x, h - 2, '#cfcfcf'); }
+  },
+  shoeTop: (g, w, h) => {
+    noise(g, w, h, PAL.shoe, 63);
+    for (let y = 1; y < h - 1; y += 2) { px(g, Math.floor(w / 2) - 1, y, '#e2e2e2'); px(g, Math.floor(w / 2), y, '#e2e2e2'); }
+  },
+  pantsCuff: (g, w, h) => {
+    paintPants(g, w, h, 53);
+    for (let x = 0; x < w; x++) px(g, x, h - 1, '#1a1b1e');
+  },
+  // Rosto 16x16 (8 pixels a 2 texels): franja, sobrancelhas, olhos com pupila, nariz e boca.
+  face: (g, w, h) => {
+    noise(g, w, h, PAL.skin, 22);
+    for (let x = 0; x < w; x++) {
+      const fringe = 3 + Math.floor(hash(x, 0, 5) * 2.4);
+      for (let y = 0; y < fringe; y++) px(g, x, y, PAL.hair[Math.floor(hash(x, y, 32) * 4)]);
+    }
+    for (let y = 0; y < 9; y++) { px(g, 0, y, PAL.hair[1]); px(g, w - 1, y, PAL.hair[1]); if (y < 6) { px(g, 1, y, PAL.hair[2]); px(g, w - 2, y, PAL.hair[2]); } }
+    for (const x of [3, 4, 5, 10, 11, 12]) px(g, x, 6, '#3a2216');
+    for (const [x, c] of [[3, '#f2f2f2'], [4, '#f2f2f2'], [5, '#4a2c1c'], [10, '#4a2c1c'], [11, '#f2f2f2'], [12, '#f2f2f2']]) { px(g, x, 8, c); px(g, x, 9, c); }
+    px(g, 5, 8, '#2a170e'); px(g, 10, 8, '#2a170e');
+    px(g, 7, 11, '#b97a55'); px(g, 8, 11, '#b97a55');
+    for (const x of [6, 7, 8, 9]) px(g, x, 13, '#9e5f45');
+  },
+  headSide: (g, w, h) => {
+    noise(g, w, h, PAL.skin, 23);
+    for (let x = 0; x < w; x++) { const d = 6 + Math.floor(hash(x, 2, 6) * 3); for (let y = 0; y < d; y++) px(g, x, y, PAL.hair[Math.floor(hash(x, y, 33) * 4)]); }
+    px(g, Math.floor(w * .45), 9, '#b97a55'); px(g, Math.floor(w * .45), 10, '#b97a55');
+  },
+  headBack: (g, w, h) => {
+    noise(g, w, h, PAL.hair, 34);
+    for (let x = 0; x < w; x++) for (let y = 12 + Math.floor(hash(x, 4, 8) * 2); y < h; y++) px(g, x, y, PAL.skin[Math.floor(hash(x, y, 24) * 4)]);
+  },
+};
+
+// Caixa voxel: [frente +Z, trás -Z, direita do personagem -X, esquerda +X, topo, base] recebem pintores próprios.
+function voxBox(size, painters, name) {
+  const [sx, sy, sz] = size;
+  const geo = new THREE.BoxGeometry(sx, sy, sz);
+  const spec = typeof painters === 'function' ? { all:painters } : painters;
+  const pick = f => spec[f] || spec.side || spec.all;
+  // Ordem do BoxGeometry: +X, -X, +Y, -Y, +Z, -Z.
+  const faces = [['px', sz, sy], ['nx', sz, sy], ['py', sx, sz], ['ny', sx, sz], ['pz', sx, sy], ['nz', sx, sy]];
+  const mats = faces.map(([f, w, h]) => {
+    const paint = pick(f) || P.skin;
+    return new THREE.MeshStandardMaterial({ map:faceTexture(name + ':' + f + ':' + (paint.name || ''), Math.round(w * TEX), Math.round(h * TEX), paint), roughness:.92, metalness:.02 });
+  });
+  const mesh = new THREE.Mesh(geo, mats);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+// ============================================================================ esqueleto (nomes do Mixamo)
+// Posições das juntas em T-pose (unidade = pixel do personagem, 32 de altura, pés em y=0, olhando para +Z;
+// a esquerda do personagem é +X). Todas as rotações de repouso são identidade: o retarget usa só os deltas.
+const J = {};
+function joint(name, parent, pos) { J[name] = { parent, pos:new THREE.Vector3(...pos) }; }
+joint('Hips', null, [0, 12.5, 0]);
+joint('Spine', 'Hips', [0, 14.5, 0]);
+joint('Spine1', 'Spine', [0, 17.5, 0]);
+joint('Spine2', 'Spine1', [0, 20.5, 0]);
+joint('Neck', 'Spine2', [0, 24, 0]);
+joint('Head', 'Neck', [0, 24.3, 0]);
+joint('HeadTop_End', 'Head', [0, 32.3, 0]);
+joint('LeftEye', 'Head', [1.9, 28.6, 4]);
+joint('RightEye', 'Head', [-1.9, 28.6, 4]);
+const FINGERS = { Index:[.96, [.95, .75, .6]], Middle:[.32, [1.05, .8, .62]], Ring:[-.32, [.95, .75, .6]], Pinky:[-.96, [.72, .6, .5]] };
+for (const side of ['Left', 'Right']) {
+  const s = side === 'Left' ? 1 : -1;
+  joint(side + 'Shoulder', 'Spine2', [1.2 * s, 22.6, 0]);
+  joint(side + 'Arm', side + 'Shoulder', [5.6 * s, 22.6, 0]);
+  joint(side + 'ForeArm', side + 'Arm', [10.4 * s, 22.6, 0]);
+  joint(side + 'Hand', side + 'ForeArm', [15.2 * s, 22.6, 0]);
+  for (const [f, [z, lens]] of Object.entries(FINGERS)) {
+    let x = 17.45, parent = side + 'Hand';
+    for (let i = 0; i < 4; i++) {
+      const name = side + 'Hand' + f + (i + 1);
+      joint(name, parent, [x * s, 22.55, z]);
+      x += lens[i] || 0;
+      parent = name;
+    }
+  }
+  // Polegar: sai da lateral da palma e aponta para a frente (+Z) em T-pose, palma para baixo.
+  const thumb = [[15.75, 22.45, 1.2], [16.3, 22.4, 2.05], [16.75, 22.35, 2.75], [17.1, 22.3, 3.35]];
+  thumb.forEach((p, i) => joint(side + 'HandThumb' + (i + 1), i ? side + 'HandThumb' + i : side + 'Hand', [p[0] * s, p[1], p[2]]));
+  joint(side + 'UpLeg', 'Hips', [2 * s, 12, 0]);
+  joint(side + 'Leg', side + 'UpLeg', [2 * s, 6.4, 0]);
+  joint(side + 'Foot', side + 'Leg', [2 * s, 1.4, 0]);
+  joint(side + 'ToeBase', side + 'Foot', [2 * s, .6, 2.3]);
+  joint(side + 'Toe_End', side + 'ToeBase', [2 * s, .6, 3.6]);
+}
+
+const hero = new THREE.Group();
+hero.name = 'heroi-voxel';
+scene.add(hero);
+const B = {};          // ossos por nome canônico (sem o prefixo mixamorig)
+const ORDER = [];      // pais antes dos filhos
+for (const [name, j] of Object.entries(J)) {
+  const bone = new THREE.Bone();
+  bone.name = 'mixamorig' + name;
+  bone.userData.canon = name;
+  B[name] = bone;
+}
+for (const [name, j] of Object.entries(J)) {
+  const bone = B[name];
+  const parentPos = j.parent ? J[j.parent].pos : new THREE.Vector3();
+  bone.position.copy(j.pos).sub(parentPos);
+  (j.parent ? B[j.parent] : hero).add(bone);
+}
+(function order(b) { ORDER.push(b.userData.canon); for (const c of b.children) if (c.isBone) order(c); })(B.Hips);
+const REST_HIPS = B.Hips.position.clone();
+const skeletonHelper = new THREE.SkeletonHelper(hero);
+skeletonHelper.visible = false;
+scene.add(skeletonHelper);
+
+// ============================================================================ partes do corpo (presas aos ossos)
+const headParts = [];
+function attach(boneName, mesh, worldCenter, dir) {
+  const bone = B[boneName];
+  mesh.position.copy(new THREE.Vector3(...worldCenter)).sub(J[boneName].pos);
+  if (dir) mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), new THREE.Vector3(...dir).normalize());
+  bone.add(mesh);
+  return mesh;
+}
+// Tronco: quadril com cinto, duas faixas da jaqueta e o peito com gola.
+attach('Hips', voxBox([8, 3.2, 4], { pz:P.hipsFront, all:P.pants }, 'hips'), [0, 12.6, 0]);
+attach('Spine', voxBox([8.2, 3.4, 4.2], { pz:P.jacketFront, all:P.jacket }, 'spine'), [0, 15.75, 0]);
+attach('Spine1', voxBox([8.2, 3.1, 4.2], { pz:P.jacketFront, all:P.jacket }, 'spine1'), [0, 18.95, 0]);
+attach('Spine2', voxBox([8.2, 3.6, 4.2], { pz:P.chestFront, all:P.jacket }, 'chest'), [0, 22.2, 0]);
+attach('Spine2', voxBox([5.6, .7, 1.2], P.jacket, 'collar-back'), [0, 24.2, -1.6]);
+// Cabeça 8x8x8 com rosto, cabelo em volta e mechas soltas por cima.
+const head = attach('Head', voxBox([8, 8, 8], { pz:P.face, nz:P.headBack, px:P.headSide, nx:P.headSide, py:P.hair, ny:P.skin }, 'head'), [0, 28.3, 0]);
+headParts.push(head);
+const tufts = [[-3.4, 32.5, 3.3, 1.4, .8, 1.6], [-1.6, 32.7, 3.6, 1.6, 1, 1.2], [.6, 32.6, 3.5, 1.5, .9, 1.4], [2.6, 32.5, 3.2, 1.6, .8, 1.8],
+  [-3.9, 30.6, 1.2, .8, 3.2, 3.6], [3.9, 30.6, 1.0, .8, 3.0, 3.8], [0, 32.6, 0, 7.6, .7, 6.2], [-2.2, 33.0, -1.2, 2.4, .7, 2.6],
+  [1.8, 33.1, -.4, 2.2, .8, 2.4], [0, 30.6, -3.9, 7.4, 3.6, .8], [-3.95, 29.0, -2.4, .8, 2.6, 2.6], [3.95, 29.1, -2.2, .8, 2.4, 2.8],
+  [-.6, 31.9, 4.25, 2.0, 1.2, .7], [2.0, 31.7, 4.25, 1.4, 1.4, .6], [-2.8, 31.6, 4.2, 1.2, 1.6, .6]];
+tufts.forEach(([x, y, z, sx, sy, sz], i) => headParts.push(attach('Head', voxBox([sx, sy, sz], P.hair, 'tuft' + i), [x, y, z])));
+for (const side of ['Left', 'Right']) {
+  const s = side === 'Left' ? 1 : -1;
+  // Braço: ombro, manga com punho branco perto do pulso, palma e dedos.
+  attach(side + 'Arm', voxBox([6.5, 3.4, 3.4], P.jacket, 'upperarm'), [7.35 * s, 22.6, 0]);
+  attach(side + 'ForeArm', voxBox([5.0, 3.15, 3.15], { all:s > 0 ? P.sleeveCuff : P.sleeveCuffR, px:P.jacket, nx:P.jacket }, 'forearm' + side), [12.75 * s, 22.6, 0]);
+  attach(side + 'Hand', voxBox([2.3, 1.15, 2.7], P.skin, 'palm'), [16.35 * s, 22.55, 0]);
+  for (const f of Object.keys(FINGERS)) {
+    for (let i = 1; i <= 3; i++) {
+      const a = J[side + 'Hand' + f + i].pos, b = J[side + 'Hand' + f + (i + 1)].pos;
+      const len = a.distanceTo(b);
+      const mid = a.clone().add(b).multiplyScalar(.5);
+      attach(side + 'Hand' + f + i, voxBox([len + .08, .56, .56], P.skin, 'finger'), mid.toArray(), b.clone().sub(a).toArray());
+    }
+  }
+  for (let i = 1; i <= 3; i++) {
+    const a = J[side + 'HandThumb' + i].pos, b = J[side + 'HandThumb' + (i + 1)].pos;
+    attach(side + 'HandThumb' + i, voxBox([a.distanceTo(b) + .1, .72, .72], P.skin, 'thumb'), a.clone().add(b).multiplyScalar(.5).toArray(), b.clone().sub(a).toArray());
+  }
+  // Perna: coxa, canela com barra, tênis preto de sola branca e a ponta do pé.
+  attach(side + 'UpLeg', voxBox([3.95, 6.1, 3.95], P.pants, 'thigh'), [2 * s, 9.25, 0]);
+  attach(side + 'Leg', voxBox([3.85, 5.0, 3.85], { all:P.pantsCuff, py:P.pants, ny:P.pants }, 'shin'), [2 * s, 3.85, 0]);
+  attach(side + 'Foot', voxBox([4.05, 1.5, 4.3], { all:P.shoeSide, py:P.shoeTop, ny:P.shoe }, 'shoe'), [2 * s, .75, -.1]);
+  attach(side + 'ToeBase', voxBox([4.05, 1.3, 1.5], { all:P.shoeSide, py:P.shoe, ny:P.shoe }, 'toe'), [2 * s, .65, 2.85]);
+}
+
+// ============================================================================ AK-47 voxel (modelo do visualizador do usuário)
+function seeded(x, y, s) { let z = Math.sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453; return z - Math.floor(z); }
+function akTexture(palette, seed, wood = false) {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const ctx = c.getContext('2d');
+  for (let y = 0; y < 32; y += 2) for (let x = 0; x < 32; x += 2) {
+    const val = seeded(x, y, seed); let ci = val > .94 ? 3 : val > .73 ? 2 : val > .23 ? 1 : 0;
+    if (wood && (y === 6 || y === 18 || y === 28) && val > .3) ci = Math.max(0, ci - 1);
+    ctx.fillStyle = palette[ci]; ctx.fillRect(x, y, 2, 2);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t;
+}
+function akMat(palette, seed, wood = false) { return new THREE.MeshStandardMaterial({ map:akTexture(palette, seed, wood), roughness:wood ? .96 : .77, metalness:wood ? .02 : .31, side:THREE.DoubleSide, flatShading:true }); }
+const M = {
+  wood:akMat(['#834018', '#a95823', '#b9662d', '#d57934'], 2, true),
+  woodLight:akMat(['#984717', '#c16a27', '#cc772b', '#e68b3d'], 3, true),
+  woodDark:akMat(['#693417', '#85421b', '#95501d', '#b5632a'], 4, true),
+  metal:akMat(['#272b32', '#343a43', '#404751', '#4d535d'], 5),
+  metalLight:akMat(['#39404a', '#464e58', '#545d67', '#69737c'], 6),
+  metalDark:akMat(['#191d23', '#232831', '#2b3139', '#333a43'], 7),
+  rib:akMat(['#474d56', '#575e67', '#656d77', '#7b8289'], 8),
+  black:new THREE.MeshStandardMaterial({ color:'#111417', metalness:.12, roughness:.97, side:THREE.DoubleSide }),
+  edge:new THREE.MeshStandardMaterial({ color:'#59616c', metalness:.3, roughness:.65, side:THREE.DoubleSide }),
+};
+const gun = new THREE.Group();
+gun.name = 'ak47-voxel';
+function cube(xyz, dim, material, rotation) { const m = new THREE.Mesh(new THREE.BoxGeometry(...dim), material); m.position.set(...xyz); if (rotation) m.rotation.z = rotation; m.castShadow = true; gun.add(m); return m; }
+function shape(points, depth, material) { const s = new THREE.Shape(); points.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { steps:1, depth, bevelEnabled:false, curveSegments:1 }), material); m.position.z = -depth / 2; m.castShadow = true; gun.add(m); return m; }
+function facade(points, z, material) { const s = new THREE.Shape(); points.forEach(([x, y], i) => i ? s.lineTo(x, y) : s.moveTo(x, y)); s.closePath(); const m = new THREE.Mesh(new THREE.ShapeGeometry(s), material); m.position.z = z; gun.add(m); return m; }
+function bothFacades(points, z, material) { facade(points, z, material); facade(points, -z, material); }
+(function buildAk() {
+  shape([[-4.30, 1.03], [-3.96, 1.19], [-1.64, 1.08], [-1.48, .88], [-1.5, .39], [-3.98, .16], [-4.30, .23]], .54, M.wood);
+  shape([[-4.32, 1.04], [-4.15, 1.06], [-4.15, .23], [-4.32, .25]], .61, M.metalDark);
+  cube([-1.54, .74, 0], [.19, .72, .66], M.woodDark);
+  for (const sign of [-1, 1]) [[-3.95, .83, .32, .13], [-3.46, .49, .35, .12], [-2.84, .89, .32, .1], [-2.41, .45, .38, .14], [-1.92, .77, .36, .09]]
+    .forEach(([x, y, w, h], i) => cube([x, y, sign * .275], [w, h, .014], i % 2 === 0 ? M.woodLight : M.woodDark));
+  cube([-.31, .71, 0], [2.39, .89, .68], M.metal); cube([-.31, 1.19, 0], [2.46, .17, .74], M.metalDark); cube([-.5, 1.30, 0], [1.75, .055, .52], M.metalLight);
+  cube([-1.48, .67, 0], [.18, .92, .79], M.metalDark); cube([.88, .58, 0], [.15, .72, .76], M.metalDark); cube([-.27, .30, 0], [2.25, .11, .66], M.metalDark);
+  for (const sign of [-1, 1]) {
+    const z = sign * .352;
+    cube([-.56, 1.01, z], [1.54, .095, .025], M.metalLight); cube([.40, .97, z], [.69, .28, .029], M.metalDark); cube([.39, .97, z + sign * .02], [.52, .11, .03], M.metalLight);
+    cube([-.76, .77, z], [.78, .085, .035], M.metalLight, .10); cube([-1.07, .85, z], [.12, .12, .045], M.edge); cube([-.15, .55, z], [.45, .07, .04], M.metalDark); cube([.57, .54, z], [.29, .08, .037], M.metalLight);
+  }
+  cube([.65, 1.36, 0], [.36, .17, .47], M.metalDark); cube([.64, 1.47, -.20], [.1, .18, .12], M.metal); cube([.64, 1.47, .20], [.1, .18, .12], M.metal); cube([.63, 1.42, 0], [.11, .09, .06], M.black);
+  cube([-.82, .15, 0], [.65, .08, .13], M.metalDark); cube([-.49, .08, 0], [.08, .24, .13], M.metalDark); cube([-1.13, .10, 0], [.08, .17, .13], M.metalDark); cube([-.89, .06, 0], [.075, .21, .10], M.edge, -.32);
+  shape([[-1.49, .36], [-1.00, .36], [-.97, .08], [-1.26, -.92], [-1.72, -.88], [-1.57, -.21]], .43, M.woodDark);
+  for (const sign of [-1, 1]) for (let i = 0; i < 4; i++) cube([-1.39 + i * .025, -.18 - i * .16, sign * .225], [.27, .045, .017], i % 2 ? M.wood : M.woodLight, -.27);
+  const rows = [{ y:.22, l:-.27, r:.28 }, { y:.04, l:-.24, r:.30 }, { y:-.13, l:-.18, r:.34 }, { y:-.30, l:-.11, r:.39 }, { y:-.47, l:-.03, r:.45 },
+    { y:-.64, l:.08, r:.53 }, { y:-.81, l:.20, r:.64 }, { y:-.98, l:.34, r:.77 }, { y:-1.15, l:.49, r:.91 }, { y:-1.29, l:.61, r:.99 }];
+  shape(rows.map(r => [r.l, r.y]).concat([...rows].reverse().map(r => [r.r, r.y])), .48, M.metalDark);
+  cube([0, .25, 0], [.64, .11, .55], M.metalLight);
+  const lerp = (u, v, f) => u + (v - u) * f;
+  for (let i = 0; i < rows.length - 1; i++) { const a = rows[i], b = rows[i + 1], t = .32;
+    bothFacades([[a.l + .064, a.y - .016], [a.r - .057, a.y - .016], [lerp(a.r, b.r, t) - .057, lerp(a.y, b.y, t)], [lerp(a.l, b.l, t) + .064, lerp(a.y, b.y, t)]], .249, i % 2 === 0 ? M.rib : M.metalLight); }
+  shape([[.59, -1.28], [.99, -1.28], [1.025, -1.34], [.67, -1.38]], .54, M.metalLight);
+  shape([[.88, 1.07], [2.17, 1.07], [2.36, .91], [2.36, .47], [2.22, .37], [.89, .39]], .56, M.woodLight);
+  cube([.90, .74, 0], [.14, .79, .69], M.metalDark); cube([2.32, .72, 0], [.17, .75, .67], M.metalDark); cube([1.61, 1.11, 0], [1.43, .10, .58], M.wood);
+  for (const sign of [-1, 1]) { const z = sign * .291;
+    cube([1.23, .95, z], [.26, .09, .022], M.black); cube([1.79, .95, z], [.32, .09, .022], M.black); cube([1.56, .59, z], [.94, .09, .025], M.wood); cube([2.02, .47, z], [.43, .085, .024], M.woodDark); }
+  cube([3.30, .73, 0], [1.94, .21, .25], M.metalDark); cube([2.84, .99, 0], [1.05, .18, .22], M.metal); cube([3.34, .78, 0], [.86, .17, .32], M.metalLight);
+  cube([2.48, .82, 0], [.15, .38, .42], M.metalDark); cube([3.98, .74, 0], [.17, .34, .35], M.metal); cube([4.28, .74, 0], [.65, .31, .33], M.metalDark);
+  cube([4.63, .74, 0], [.09, .31, .37], M.metalLight); cube([4.684, .74, 0], [.009, .155, .17], M.black);
+  cube([3.91, 1.12, -.16], [.13, .62, .10], M.metalDark); cube([3.91, 1.12, .16], [.13, .62, .10], M.metalDark); cube([3.91, 1.17, 0], [.11, .40, .07], M.metalLight); cube([3.90, 1.46, 0], [.12, .07, .40], M.metalDark);
+})();
+const GUN_S = 1.75;                         // pixels do personagem por unidade do visualizador (AK com ~16 px)
+gun.scale.setScalar(GUN_S);
+scene.add(gun);
+// Pontos de contato no espaço da arma (unidades do visualizador).
+const GRIP = new THREE.Vector3(-1.27, -.12, 0);      // empunhadura (mão direita)
+const FOREGRIP = new THREE.Vector3(1.55, .40, 0);    // embaixo do guarda-mão (mão esquerda)
+const BUTT = new THREE.Vector3(-4.3, .62, 0);        // soleira da coronha (ombro ao mirar)
+
+// ============================================================================ IK dos braços e mãos
+const V = () => new THREE.Vector3();
+const Q = () => new THREE.Quaternion();
+const X_AXIS = new THREE.Vector3(1, 0, 0), Y_AXIS = new THREE.Vector3(0, 1, 0);
+const LEN = {};
+for (const side of ['Left', 'Right']) {
+  LEN[side] = [J[side + 'Arm'].pos.distanceTo(J[side + 'ForeArm'].pos), J[side + 'ForeArm'].pos.distanceTo(J[side + 'Hand'].pos)];
+}
+function setWorldQuat(bone, qWorld) {
+  const parentQ = bone.parent.getWorldQuaternion(Q());
+  bone.quaternion.copy(parentQ.invert().multiply(qWorld));
+  bone.updateMatrixWorld(true);
+}
+// Rotação que leva a base de repouso (eixo do osso = restDir, cima = +Y) para (dir, up).
+function basisQuat(restDir, dir, up) {
+  const d = dir.clone().normalize();
+  const u = up.clone().sub(d.clone().multiplyScalar(up.dot(d))).normalize();
+  const m1 = new THREE.Matrix4().makeBasis(d, u, d.clone().cross(u));
+  const m0 = new THREE.Matrix4().makeBasis(restDir, Y_AXIS, restDir.clone().cross(Y_AXIS));
+  return Q().setFromRotationMatrix(m1.multiply(m0.transpose()));
+}
+// Mão em repouso: dedos ao longo de ±X, palma para baixo (-Y), polegar para a frente (+Z).
+// Direita na empunhadura: dedos -> cano, palma -> lado esquerdo da arma, polegar -> cima.
+const R_RIGHT = Q().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 1, 0)));
+// Esquerda no guarda-mão: dedos -> lado direito da arma, palma -> cima, polegar -> ao longo do cano.
+const R_LEFT = Q().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, -1, 0), new THREE.Vector3(1, 0, 0)));
+const PALM_RIGHT = new THREE.Vector3(-1.55, -.95, 0);   // centro do punho fechado em relação ao pulso
+const PALM_LEFT = new THREE.Vector3(1.45, -.75, .1);
+let reachError = 0;
+function solveArm(side, contact, handQuat, palmOffset, pole) {
+  const arm = B[side + 'Arm'], fore = B[side + 'ForeArm'], hand = B[side + 'Hand'];
+  const restDir = side === 'Left' ? X_AXIS.clone() : X_AXIS.clone().negate();
+  const wrist = contact.clone().sub(palmOffset.clone().applyQuaternion(handQuat));
+  const S = arm.getWorldPosition(V());
+  const [a, b] = LEN[side];
+  const toT = wrist.clone().sub(S);
+  const dist = THREE.MathUtils.clamp(toT.length(), .2, a + b - .02);
+  const dir = toT.normalize();
+  const cosA = THREE.MathUtils.clamp((a * a + dist * dist - b * b) / (2 * a * dist), -1, 1);
+  const pn = pole.clone().sub(dir.clone().multiplyScalar(pole.dot(dir))).normalize();
+  const E = S.clone().add(dir.clone().multiplyScalar(a * cosA)).add(pn.multiplyScalar(a * Math.sqrt(1 - cosA * cosA)));
+  const handUp = Y_AXIS.clone().applyQuaternion(handQuat);
+  setWorldQuat(arm, basisQuat(restDir, E.clone().sub(S), handUp.clone().add(Y_AXIS)));
+  const Ew = fore.getWorldPosition(V());
+  setWorldQuat(fore, basisQuat(restDir, wrist.clone().sub(Ew), handUp));
+  setWorldQuat(hand, handQuat);
+  reachError = Math.max(reachError, hand.getWorldPosition(V()).distanceTo(wrist));
+}
+// Dedos fechados em volta da empunhadura/guarda-mão (rotação em Z = em direção à palma).
+function curlFingers(side, grip) {
+  const s = side === 'Left' ? -1 : 1;
+  for (const f of Object.keys(FINGERS)) {
+    const amount = grip ? (side === 'Right' && f === 'Index' ? [.35, .55, .35] : [1.0, 1.15, .75]) : [.18, .22, .15];
+    for (let i = 1; i <= 3; i++) B[side + 'Hand' + f + i].quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), s * amount[i - 1]);
+  }
+  const t = grip ? [.45, .4, .35] : [.1, .1, .05];
+  for (let i = 1; i <= 3; i++) B[side + 'HandThumb' + i].quaternion.setFromAxisAngle(X_AXIS, t[i - 1]);
+}
+
+// ============================================================================ poses e animações procedurais
+// BEGIN PREVIEW TRANSPORT
+function createPreviewTransport() {
+  const validTime = value => { if (!Number.isFinite(value) || value < 0) throw new RangeError('tempo inválido'); return value; };
+  return {
+    time:0, paused:false, weaponKick:0, reloadProgress:-1, reloadDuration:2,
+    seek(time) { this.time = validTime(time); this.weaponKick = 0; this.reloadProgress = -1; },
+    shoot() { if (this.reloadProgress >= 0) return false; this.weaponKick = Math.max(this.weaponKick, .5); return true; },
+    reload() { this.reloadProgress = 0; this.weaponKick = 0; },
+    scrubReload(value) { if (!Number.isFinite(value)) throw new RangeError('recarga inválida'); this.reloadProgress = value < 0 ? -1 : Math.min(1, value); },
+    advance(dt) {
+      validTime(dt); this.time += dt;
+      this.weaponKick = Math.max(0, this.weaponKick - dt * 7);
+      if (this.reloadProgress >= 0 && dt > 0) {
+        this.reloadProgress += dt / this.reloadDuration;
+        if (this.reloadProgress >= 1) this.reloadProgress = -1;
+      }
+    },
+    tick(dt) { if (!this.paused) this.advance(dt); },
+    sample() {
+      const p = this.reloadProgress;
+      return { kick:this.weaponKick * .1, reloadProgress:p,
+        reload:p >= 0 ? Math.sin(p * Math.PI) : 0,
+        magazine:p >= 0 ? Math.max(0, Math.sin(p * Math.PI * 2)) : 0 };
+    }
+  };
+}
+// END PREVIEW TRANSPORT
+const transport = createPreviewTransport();
+const state = { anim:'ready', source:null, sourceClip:null, ik:true, inPlace:true, slow:false, view:'persp',
+  get time() { return transport.time; }, set time(value) { transport.seek(value); } };
+function resetPose() {
+  for (const n of ORDER) B[n].quaternion.identity();
+  B.Hips.position.copy(REST_HIPS);
+}
+function rot(name, x, y, z) { B[name].quaternion.setFromEuler(new THREE.Euler(x, y, z, 'YXZ')); }
+function legs(t, freq, amp, knee, bob) {
+  const p = t * Math.PI * 2 * freq;
+  for (const [side, ph] of [['Left', 0], ['Right', Math.PI]]) {
+    const q = p + ph;
+    const thigh = -amp * Math.sin(q);
+    const k = knee * Math.max(0, Math.sin(q + 1.25)) + knee * .12;
+    rot(side + 'UpLeg', thigh, 0, 0);
+    rot(side + 'Leg', k, 0, 0);
+    rot(side + 'Foot', -(thigh + k) * .55, 0, 0);
+  }
+  B.Hips.position.y = REST_HIPS.y - .15 + bob * Math.abs(Math.cos(p));
+  return p;
+}
+// Cada animação ajusta pernas/tronco/cabeça e devolve onde a arma fica ("ready", "aim", "run" ou nenhuma).
+const ANIMS = {
+  tpose: { label:'T-pose', hint:'Pose de repouso do esqueleto (igual à do Mixamo).', pose() { return null; } },
+  unarmed: { label:'Sem arma', hint:'Braços soltos: os dedos relaxam.', pose(t) {
+    const br = Math.sin(t * 2) * .03;
+    rot('Spine1', br, 0, 0);
+    rot('LeftArm', 0, 0, -1.32 + br); rot('RightArm', 0, 0, 1.32 - br);
+    rot('LeftForeArm', 0, -.15, 0); rot('RightForeArm', 0, .15, 0);
+    rot('LeftUpLeg', 0, 0, .05); rot('RightUpLeg', 0, 0, -.05);
+    return null; } },
+  ready: { label:'Arma pronta', hint:'Fuzil atravessado no peito, cano para baixo e para a esquerda — como na referência.', pose(t) {
+    const br = Math.sin(t * 2.2) * .025;
+    rot('Spine', 0, -.06, 0); rot('Spine1', br, -.08, 0); rot('Spine2', br * .5, -.08, 0);
+    rot('Neck', 0, .1, 0); rot('Head', .05, .1, 0);
+    rot('LeftUpLeg', -.04, 0, .07); rot('RightUpLeg', .04, 0, -.07); rot('LeftLeg', .08, 0, 0); rot('RightLeg', .1, 0, 0);
+    return 'ready'; } },
+  aim: { label:'Mirando', hint:'Coronha no ombro direito, corpo de lado e olho na alça de mira.', pose(t) {
+    const br = Math.sin(t * 2.4) * .012;
+    rot('Hips', 0, -.35, 0);
+    rot('Spine', 0, -.12, 0); rot('Spine1', br, -.14, 0); rot('Spine2', .04, -.18, 0);
+    rot('Neck', .16, .3, .04); rot('Head', .3, .36, .14);
+    rot('LeftUpLeg', -.15, .35, .1); rot('RightUpLeg', .12, .35, -.12); rot('LeftLeg', .18, 0, 0); rot('RightLeg', .12, 0, 0);
+    rot('LeftFoot', -.03, 0, 0); rot('RightFoot', 0, .2, 0);
+    return 'aim'; } },
+  walk: { label:'Andando', hint:'Passada com a arma pronta: as mãos seguem a arma pela IK.', pose(t) {
+    const p = legs(t, .95, .5, .9, .35);
+    rot('Spine', 0, Math.sin(p) * .06, 0); rot('Spine1', .03, -.06, 0); rot('Spine2', 0, -.06 - Math.sin(p) * .04, 0);
+    rot('Head', .05, .1, 0);
+    return 'ready'; } },
+  run: { label:'Correndo', hint:'Corrida inclinada com a arma colada no corpo.', pose(t) {
+    const p = legs(t, 1.45, .85, 1.45, .7);
+    rot('Spine', .12, Math.sin(p) * .1, 0); rot('Spine1', .1, -.05, 0); rot('Spine2', .06, -.05 - Math.sin(p) * .06, 0);
+    rot('Neck', -.1, .05, 0); rot('Head', -.12, .05, 0);
+    return 'run'; } },
+};
+
+// Onde a arma fica em cada modo, a partir do peito (Spine2) já animado.
+function placeGun(mode, t) {
+  const chest = B.Spine2.getWorldPosition(V());
+  const chestQ = B.Spine2.getWorldQuaternion(Q());
+  let dir, up, anchorWorld, anchorLocal;
+  if (mode === 'aim') {
+    // Cano para a frente do personagem (os quadris viram, a arma não), soleira no bolso do ombro direito.
+    dir = new THREE.Vector3(0, -.02, 1).normalize();
+    up = new THREE.Vector3(0, 1, 0);
+    anchorWorld = chest.clone().add(new THREE.Vector3(-1.7, 2.7, .3).applyQuaternion(chestQ));
+    anchorLocal = BUTT;
+  } else {
+    // Pronta/corrida: cano descendo na diagonal para a esquerda e um pouco à frente.
+    const run = mode === 'run';
+    const bob = run ? Math.sin(t * Math.PI * 2 * 2.9) * .25 : 0;
+    dir = new THREE.Vector3(run ? .8 : .9, run ? -.42 : -.36, run ? .42 : .25).applyQuaternion(chestQ).normalize();
+    up = new THREE.Vector3(0, 1, .55).applyQuaternion(chestQ);
+    anchorWorld = chest.clone().add(new THREE.Vector3(run ? -1.6 : -2.0, (run ? -2.6 : -3.5) + bob, run ? 3.3 : 3.4).applyQuaternion(chestQ));
+    anchorLocal = GRIP;
+  }
+  const x = dir.clone().normalize();
+  const y = up.clone().sub(x.clone().multiplyScalar(up.dot(x))).normalize();
+  gun.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, x.clone().cross(y)));
+  gun.position.copy(anchorWorld).sub(anchorLocal.clone().multiplyScalar(GUN_S).applyQuaternion(gun.quaternion));
+  applyWeaponMotion();
+  gun.updateMatrixWorld(true);
+  return mode;
+}
+function holdGun(mode) {
+  const g = gun.quaternion;
+  const gripW = gun.localToWorld(GRIP.clone());
+  const foreW = gun.localToWorld(FOREGRIP.clone());
+  const motion = transport.sample();
+  if (motion.reloadProgress >= 0) {
+    // Native gun +Z forward maps to viewer +X, native +X maps to viewer -Z.
+    // Native metres / .085 = character pixels; convert back to gun-local units.
+    const magazine = GRIP.clone().lerp(FOREGRIP, .55);
+    magazine.y -= .12 / .085 / GUN_S;
+    foreW.lerp(gun.localToWorld(magazine), motion.magazine);
+  }
+  reachError = 0;
+  const aim = mode === 'aim';
+  solveArm('Right', gripW, g.clone().multiply(R_RIGHT), PALM_RIGHT, aim ? new THREE.Vector3(-1, -.7, -.4) : new THREE.Vector3(-1, -.9, -.6));
+  solveArm('Left', foreW, g.clone().multiply(R_LEFT), PALM_LEFT, aim ? new THREE.Vector3(.3, -1, -.2) : new THREE.Vector3(1, -1, -.3));
+  curlFingers('Right', true);
+  curlFingers('Left', true);
+}
+function applyWeaponMotion() {
+  const { kick, reload } = transport.sample();
+  const forward = X_AXIS.clone().applyQuaternion(gun.quaternion);
+  const right = new THREE.Vector3(0, 0, -1).applyQuaternion(gun.quaternion);
+  const roll = Q().setFromAxisAngle(forward, -.55 * reload);
+  const pitch = Q().setFromAxisAngle(right, .35 * reload - kick);
+  gun.quaternion.premultiply(pitch).premultiply(roll);
+  gun.position.addScaledVector(forward, -kick * .3 / .085);
+  gun.position.y -= reload * 1.4;
+}
+// Sem IK (animação de fuzil do Mixamo): a arma acompanha a mão direita.
+const HAND_TO_GUN = R_RIGHT.clone().invert();
+function gunInRightHand() {
+  const hand = B.RightHand;
+  const hq = hand.getWorldQuaternion(Q());
+  gun.quaternion.copy(hq.clone().multiply(HAND_TO_GUN));
+  const contact = hand.getWorldPosition(V()).add(PALM_RIGHT.clone().applyQuaternion(hq));
+  gun.position.copy(contact).sub(GRIP.clone().multiplyScalar(GUN_S).applyQuaternion(gun.quaternion));
+  applyWeaponMotion();
+  gun.updateMatrixWorld(true);
+  curlFingers('Right', true);
+}
+
+// ============================================================================ retarget do Mixamo (pelo nome dos ossos)
+const canon = n => n.replace(/^mixamorig\d*[:_]?/i, '').replace(/:/g, '');
+class MixamoSource {
+  constructor(root, label) {
+    this.root = root;
+    this.label = label;
+    this.mixer = new THREE.AnimationMixer(root);
+    this.bones = new Map();
+    root.traverse(o => { if (o.isBone || /mixamorig/i.test(o.name)) { const c = canon(o.name); if (J[c] && !this.bones.has(c)) this.bones.set(c, o); } });
+    root.updateMatrixWorld(true);
+    const rootInv = root.getWorldQuaternion(Q()).invert();
+    this.restInv = new Map();
+    for (const [c, b] of this.bones) this.restInv.set(c, rootInv.clone().multiply(b.getWorldQuaternion(Q())).invert());
+    const hips = this.bones.get('Hips');
+    this.hipsRest = hips ? root.worldToLocal(hips.getWorldPosition(V())) : new THREE.Vector3(0, 1, 0);
+    this.scale = REST_HIPS.y / Math.max(1e-3, this.hipsRest.y);
+  }
+  play(clip) {
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(clip);
+    action.reset().setLoop(THREE.LoopRepeat).play();
+  }
+  apply() {
+    this.root.updateMatrixWorld(true);
+    const rootInv = this.root.getWorldQuaternion(Q()).invert();
+    const W = new Map();
+    for (const name of ORDER) {
+      const ob = B[name];
+      const parentW = name === 'Hips' ? Q() : W.get(J[name].parent);
+      const sb = this.bones.get(name);
+      const w = sb ? rootInv.clone().multiply(sb.getWorldQuaternion(Q())).multiply(this.restInv.get(name)) : parentW.clone();
+      ob.quaternion.copy(parentW.clone().invert().multiply(w));
+      W.set(name, w);
+    }
+    const hips = this.bones.get('Hips');
+    if (hips) {
+      const d = this.root.worldToLocal(hips.getWorldPosition(V())).sub(this.hipsRest).multiplyScalar(this.scale);
+      if (state.inPlace) { d.x = 0; d.z = 0; }
+      B.Hips.position.copy(REST_HIPS).add(d);
+    }
+  }
+}
+const sources = [];
+const clipList = document.getElementById('clips');
+function addSource(root, clips, label) {
+  if (!clips.length) { setStatus('O arquivo "' + label + '" não tem animação.'); return; }
+  const src = new MixamoSource(root, label);
+  if (src.bones.size < 10) { setStatus('"' + label + '" não tem ossos mixamorig reconhecidos.'); return; }
+  sources.push(src);
+  for (const clip of clips) {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = (clips.length > 1 ? clip.name : label.replace(/\.(fbx|glb|gltf)$/i, '')) + ' · ' + clip.duration.toFixed(1) + ' s';
+    b.addEventListener('click', () => playSource(src, clip, b));
+    clipList.appendChild(b);
+  }
+  setStatus(src.bones.size + ' ossos ligados pelo nome em "' + label + '".');
+  playSource(src, clips.find(c => /idle/i.test(c.name)) || clips[0], clipList.lastElementChild);
+}
+function playSource(src, clip, button) {
+  state.source = src; state.sourceClip = clip;
+  src.play(clip);
+  document.querySelectorAll('#anims .btn, #clips .btn').forEach(x => x.classList.remove('active'));
+  if (button) button.classList.add('active');
+  const rifle = /rifle|gun|fir|shoot|aim/i.test(clip.name + ' ' + src.label);
+  setTitle('ANIMAÇÃO DO MIXAMO', clip.name || src.label, rifle ? 'Animação de fuzil: desligue a IK para a arma seguir a mão direita.' : 'Esqueleto do Mixamo tocando no personagem voxel; a IK prende as mãos na arma.');
+}
+const loader = { fbx:new FBXLoader(), gltf:new GLTFLoader() };
+async function loadFile(file) {
+  const buf = await file.arrayBuffer();
+  if (/\.fbx$/i.test(file.name)) {
+    const obj = loader.fbx.parse(buf, '');
+    obj.visible = false; scene.add(obj);
+    addSource(obj, obj.animations, file.name);
+  } else {
+    loader.gltf.parse(buf, '', g => { g.scene.visible = false; scene.add(g.scene); addSource(g.scene, g.animations, file.name); }, e => setStatus('Erro ao ler ' + file.name + ': ' + e.message));
+  }
+}
+document.getElementById('file').addEventListener('change', e => [...e.target.files].forEach(loadFile));
+const drop = document.getElementById('drop');
+for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); });
+for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); });
+drop.addEventListener('drop', e => [...e.dataTransfer.files].forEach(loadFile));
+document.getElementById('demo').addEventListener('click', () => {
+  setStatus('Baixando o X Bot do repositório do three.js…');
+  loader.gltf.load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@r180/examples/models/gltf/Xbot.glb',
+    g => { g.scene.visible = false; scene.add(g.scene); addSource(g.scene, g.animations.filter(a => !/pose$/i.test(a.name)), 'X Bot (Mixamo)'); },
+    undefined, e => setStatus('Não consegui baixar o X Bot: ' + (e.message || e)));
+});
+
+// ============================================================================ interface
+const statusEl = document.getElementById('status');
+const sheetEl = document.getElementById('sheet');
+function setStatus(t) { statusEl.textContent = t; }
+function setTitle(kicker, name, hint) {
+  document.getElementById('kicker').textContent = kicker;
+  document.getElementById('animName').textContent = name;
+  document.getElementById('animHint').textContent = hint;
+}
+function selectAnim(name) {
+  state.anim = name; state.source = null;
+  document.querySelectorAll('#anims .btn, #clips .btn').forEach(x => x.classList.toggle('active', x.dataset.anim === name));
+  setTitle('ANIMAÇÃO PROCEDURAL', ANIMS[name].label, ANIMS[name].hint);
+}
+document.querySelectorAll('#anims .btn').forEach(b => b.addEventListener('click', () => selectAnim(b.dataset.anim)));
+function toggle(id, key, after) {
+  const el = document.getElementById(id);
+  el.setAttribute('aria-pressed', String(state[key]));
+  el.addEventListener('click', () => { state[key] = !state[key]; el.classList.toggle('on', state[key]); el.setAttribute('aria-pressed', String(state[key])); if (after) after(); });
+}
+toggle('ik', 'ik');
+toggle('inplace', 'inPlace');
+toggle('slow', 'slow');
+document.getElementById('bones').setAttribute('aria-pressed', 'false');
+document.getElementById('bones').addEventListener('click', e => { skeletonHelper.visible = !skeletonHelper.visible; e.currentTarget.classList.toggle('on', skeletonHelper.visible); e.currentTarget.setAttribute('aria-pressed', String(skeletonHelper.visible)); });
+const VIEWS = { persp:[38, 28, 52], front:[0, 19, 62], side:[62, 19, 0], back:[0, 21, -62], shoulder:[-13, 30, -40] };
+const desired = new THREE.Vector3(...VIEWS.persp);
+let flying = false;
+function setView(v) {
+  state.view = v;
+  document.querySelectorAll('#views .btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  const fps = v === 'fps';
+  controls.enabled = !fps;
+  headParts.forEach(m => { m.visible = !fps; });
+  if (!fps) {
+    desired.set(...VIEWS[v]); flying = true;
+    controls.target.set(v === 'shoulder' ? -4 : 0, v === 'shoulder' ? 21 : 17, v === 'shoulder' ? 12 : 0);
+  }
+  if (fps && state.anim !== 'aim' && !state.source) selectAnim('aim');
+  if (transport.paused) { settleCamera(); step(0, false); }
+}
+document.querySelectorAll('#views .btn[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.getElementById('sheetBtn').addEventListener('click', () => { sheetEl.src = renderSheet(); sheetEl.hidden = false; });
+sheetEl.addEventListener('click', () => { sheetEl.hidden = true; });
+controls.addEventListener('start', () => { flying = false; });
+camera.position.copy(desired);
+
+function resize() {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  if (!w || !h) return;
+  camera.aspect = w / h;
+  // Tela em pé: abre o campo de visão para o corpo inteiro caber na largura.
+  camera.fov = camera.aspect < 1 ? 38 / Math.max(.45, camera.aspect) : 38;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+// Folha de poses: várias vistas do quadro atual numa imagem só (como uma folha de referência de personagem).
+function renderSheet() {
+  const cols = 3, rows = 2, cw = 440, ch = 540;
+  const out = document.createElement('canvas');
+  out.width = cw * cols; out.height = ch * rows;
+  const g = out.getContext('2d');
+  g.fillStyle = '#15181c'; g.fillRect(0, 0, out.width, out.height);
+  const saved = { pos:camera.position.clone(), quat:camera.quaternion.clone(), aspect:camera.aspect, fov:camera.fov };
+  const heads = headParts.map(m => m.visible);
+  headParts.forEach(m => { m.visible = true; });
+  renderer.setSize(cw, ch, false);
+  camera.aspect = cw / ch; camera.fov = 34; camera.updateProjectionMatrix();
+  const shots = [['Frente', [0, 19, 66], [0, 16.5, 0]], ['3/4', [38, 26, 52], [0, 16.5, 0]], ['Lado', [66, 19, 0], [0, 16.5, 0]],
+    ['Costas', [0, 21, -66], [0, 16.5, 0]], ['Ombro (jogo)', [-13, 30, -40], [-4, 21, 12]], ['Mãos e arma', [-12, 26, 30], [1, 17, 4]]];
+  shots.forEach(([label, pos, target], i) => {
+    camera.position.set(...pos); camera.lookAt(...target);
+    renderer.render(scene, camera);
+    const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
+    g.drawImage(renderer.domElement, x, y, cw, ch);
+    g.fillStyle = '#ffad64'; g.font = 'bold 20px Inter, sans-serif'; g.fillText(label.toUpperCase(), x + 16, y + 32);
+    g.strokeStyle = '#2b2e34'; g.strokeRect(x + .5, y + .5, cw - 1, ch - 1);
+  });
+  headParts.forEach((m, i) => { m.visible = heads[i]; });
+  camera.position.copy(saved.pos); camera.quaternion.copy(saved.quat);
+  resize();
+  return out.toDataURL('image/png');
+}
+new ResizeObserver(resize).observe(viewport); resize();
+
+const meshCount = (() => { let n = 0; hero.traverse(o => { if (o.isMesh) n++; }); return n; })();
+document.getElementById('info').innerHTML = '<span><strong>Ossos:</strong> ' + ORDER.length + ' (padrão Mixamo)</span><br><span><strong>Mão:</strong> 5 dedos × 3 falanges</span><br><span><strong>Blocos:</strong> ' + meshCount + ' no corpo + AK-47 voxel</span><br><span id="reach"></span>';
+const reachEl = document.getElementById('reach');
+setStatus('Pronto: ' + ORDER.length + ' ossos, ' + meshCount + ' blocos.');
+
+// ============================================================================ quadro
+const clock = new THREE.Clock();
+document.addEventListener('visibilitychange', () => { clock.getDelta(); });
+function frame() {
+  requestAnimationFrame(frame);
+  const dt = Math.min(clock.getDelta(), .05) * (state.slow ? .25 : 1);
+  step(transport.paused ? 0 : dt, !transport.paused);
+}
+function step(dt, updateCamera = true) {
+  transport.advance(dt);
+  reachError = 0;
+  resetPose();
+  let mode = null;
+  if (state.source) {
+    state.source.mixer.update(dt);
+    state.source.apply();
+    const name = (state.sourceClip?.name || '').toLowerCase();
+    mode = state.ik ? (/run|sprint/.test(name) ? 'run' : 'ready') : 'hand';
+  } else {
+    mode = ANIMS[state.anim].pose(state.time);
+  }
+  hero.updateMatrixWorld(true);
+  gun.visible = mode !== null;
+  if (mode === 'hand') gunInRightHand();
+  else if (mode) { placeGun(mode, state.time); holdGun(mode); }
+  else {
+    gun.position.set(0, 0, 0); gun.quaternion.identity(); gun.updateMatrixWorld(true);
+    curlFingers('Left', false); curlFingers('Right', false);
+  }
+  hero.updateMatrixWorld(true);
+  reachEl.textContent = mode && mode !== 'hand' ? 'Alcance das mãos: ' + (reachError < .05 ? 'ok' : 'falta ' + reachError.toFixed(2) + ' px') : '';
+  if (state.view === 'fps') {
+    // Olhos na altura da cabeça, olhando para onde o corpo aponta (sem herdar a inclinação da cabeça).
+    const eye = B.Head.getWorldPosition(V()).add(new THREE.Vector3(-.6, 4.6, 1.2));
+    camera.position.copy(eye);
+    const aiming = state.anim === 'aim' && !state.source;
+    camera.lookAt(eye.clone().add(new THREE.Vector3(aiming ? .08 : .12, aiming ? -.3 : -.62, 1)));
+  } else if (updateCamera) {
+    if (flying) { camera.position.lerp(desired, 1 - Math.exp(-5.66 * dt)); if (camera.position.distanceToSquared(desired) < .01) flying = false; }
+    controls.update();
+  }
+  renderer.render(scene, camera);
+  document.getElementById('previewTime').value = state.time.toFixed(4);
+  document.getElementById('reloadScrub').value = Math.max(0, transport.reloadProgress);
+  document.getElementById('reloadScrub').setAttribute('aria-valuetext', transport.reloadProgress < 0 ? 'Sem recarga' : 'Recarga: ' + Math.round(transport.reloadProgress * 100) + '%');
+}
+function setPaused(paused) {
+  transport.paused = Boolean(paused);
+  const button = document.getElementById('pause');
+  button.textContent = transport.paused ? 'Continuar' : 'Pausar';
+}
+function seek(time) {
+  transport.seek(time);
+  if (state.source) state.source.mixer.setTime(time);
+  step(0);
+}
+function shoot() { const fired = transport.shoot(); step(0); return fired; }
+function reload() { transport.reload(); step(0); }
+function scrubReload(progress) { transport.scrubReload(progress); step(0); }
+function snapshot() {
+  hero.updateMatrixWorld(true); gun.updateMatrixWorld(true);
+  const transform = object => ({ position:object.getWorldPosition(V()).toArray(), quaternion:object.getWorldQuaternion(Q()).toArray() });
+  return { time:state.time, anim:state.anim, view:state.view, paused:transport.paused, motion:transport.sample(),
+    camera:{ ...transform(camera), target:controls.target.toArray(), fov:camera.fov, aspect:camera.aspect, flying },
+    gun:{ ...transform(gun), visible:gun.visible },
+    bones:Object.fromEntries(ORDER.map(name => [name, transform(B[name])])), reachError };
+}
+// Captura absoluta: tempo da pose e eventos da arma são entradas independentes.
+// seek() limpa eventos; aplique reloadProgress/shotAge depois para reproduzi-los.
+function capture({ anim = 'ready', time = 0, view = 'persp', reloadProgress = -1, shotAge = null, ik = true } = {}) {
+  if (!ANIMS[anim]) throw new RangeError('animação inválida');
+  if (view !== 'fps' && !VIEWS[view]) throw new RangeError('vista inválida');
+  if (!Number.isFinite(time) || time < 0) throw new RangeError('tempo inválido');
+  if (shotAge !== null && (!Number.isFinite(shotAge) || shotAge < 0)) throw new RangeError('tempo do disparo inválido');
+  if (!Number.isFinite(reloadProgress)) throw new RangeError('recarga inválida');
+  setPaused(true);
+  selectAnim(anim); setView(view); seek(time);
+  state.ik = Boolean(ik);
+  document.getElementById('ik').classList.toggle('on', state.ik);
+  document.getElementById('ik').setAttribute('aria-pressed', String(state.ik));
+  transport.scrubReload(reloadProgress);
+  transport.weaponKick = shotAge === null ? 0 : Math.max(0, .5 - shotAge * 7);
+  settleCamera();
+  step(0, false);
+  return snapshot();
+}
+function settleCamera() {
+  // Uma atualização sem amortecimento consome o movimento pendente do OrbitControls.
+  const damping = controls.enableDamping;
+  controls.enableDamping = false;
+  controls.update();
+  flying = false;
+  if (state.view !== 'fps') {
+    camera.position.copy(desired);
+    controls.target.set(state.view === 'shoulder' ? -4 : 0, state.view === 'shoulder' ? 21 : 17, state.view === 'shoulder' ? 12 : 0);
+    controls.update();
+  }
+  controls.enableDamping = damping;
+}
+document.getElementById('shoot').addEventListener('click', shoot);
+document.getElementById('reload').addEventListener('click', reload);
+document.getElementById('pause').addEventListener('click', () => setPaused(!transport.paused));
+document.getElementById('advance').addEventListener('click', () => { setPaused(true); step(1 / 30); });
+document.getElementById('previewTime').addEventListener('change', e => { setPaused(true); seek(Math.max(0, Number(e.target.value) || 0)); });
+document.getElementById('reloadScrub').addEventListener('input', e => { setPaused(true); scrubReload(Number(e.target.value)); });
+frame();
+// Depuração: avança quadros sem depender do requestAnimationFrame (aba em segundo plano).
+window.__heroi = { B, gun, state, ANIMS, selectAnim, setView, step, camera, controls, renderSheet,
+  pause:setPaused, seek, shoot, reload, scrubReload, snapshot, capture, settleCamera,
+  advance(frames = 1) { if (!Number.isInteger(frames) || frames < 0) throw new RangeError('quadros inválidos'); setPaused(true); step(frames / 30); return snapshot(); },
+  sheet(anim) { if (anim) selectAnim(anim); for (let i = 0; i < 30; i++) step(1 / 30); document.querySelector('aside').style.display = 'none'; resize(); sheetEl.src = renderSheet(); sheetEl.hidden = false; return reachEl.textContent; },
+  snap(view, frames = 40) { setView(view); for (let i = 0; i < frames; i++) step(1 / 30); if (view !== 'fps') { camera.position.copy(desired); controls.update(); } step(0); return reachEl.textContent; } };
+</script>
+</body>
+</html>

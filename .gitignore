@@ -1,0 +1,20 @@
+.gradle/
+.idea/
+local.properties
+**/build/
+node_modules/
+.playwright-cli/
+.worktrees/
+output/
+kenney_blocky-characters_20/
+kenney_modular-dungeon-kit_1.0/
+.kotlin/
+**/.cxx/
+
+# Versão web antiga e arquivos de depuração locais (fora do repositório)
+legacy/
+codex-*.png
+codex-window.xml
+
+# Resultados de medição de desempenho (scripts/zzperf.mjs)
+perf-results/
