@@ -701,12 +701,13 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
             fun mx(value: Float) = left + value / 1440f * mapSize
             fun mz(value: Float) = top + value / 1440f * mapSize
             p.style = Paint.Style.STROKE; p.strokeWidth = d(1f); p.color = Color.WHITE
-            val zoneRevealed = state[11] > 0f || state[12] > 0f || (state[2] >= 25f && state[me + 11].toInt() != 0) || state[2] >= 38f
+            val zoneRevealed = state[11] > 0f || state[12] > 0f || state[1].toInt() == 2 || (state[1].toInt() == 1 && state[me + 11].toInt() == 3 && state[22] >= 30f)
             if (zoneRevealed) {
-                val pre = if (state[11].toInt() == 0 && state[12] <= 0f) ((state[2] - 25f) / 70f).coerceIn(0f, 0.72f) else 0f
-                val zx = state[4] + (state[7] - state[4]) * pre
-                val zz = state[5] + (state[8] - state[5]) * pre
-                val zr = state[6] + (state[9] - state[6]) * pre
+                val waitProg = if (state[1].toInt() == 2) (state[22] / (state[22] + state[10]).coerceAtLeast(30f)).coerceIn(0f, 1f) else 0f
+                val isInitialWait = state[11].toInt() == 0 && state[12] <= 0f
+                val zx = if (isInitialWait) 720f else state[4]
+                val zz = if (isInitialWait) 720f else state[5]
+                val zr = if (isInitialWait) (1050f + (state[6] - 1050f) * waitProg) else state[6]
                 p.style = Paint.Style.STROKE; p.strokeWidth = d(1.5f); p.color = Palette.cyan
                 canvas.drawCircle(mx(zx), mz(zz), zr / 1440f * mapSize, p)
                 p.strokeWidth = d(1f); p.color = Color.WHITE
@@ -749,7 +750,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
         textPaint.setShadowLayer(d(2f), d(1f), d(1f), Color.BLACK)
         canvas.drawText("${state[21].toInt()} EQUIPES   •   ${state[me + 10].toInt()} ELIMINAÇÕES   •   $latency ms", w * .5f, d(18f), textPaint)
         textPaint.color = if (state[12] > 0f) Palette.gold else Color.WHITE
-        val zoneRevealed = state[11] > 0f || state[12] > 0f || (state[2] >= 25f && state[me + 11].toInt() != 0) || state[2] >= 38f
+        val zoneRevealed = state[11] > 0f || state[12] > 0f || state[1].toInt() == 2 || (state[1].toInt() == 1 && state[me + 11].toInt() == 3 && state[22] >= 30f)
         textPaint.color = if (state[12] > 0f) Palette.gold else if (zoneRevealed) Palette.cyan else Color.WHITE
         val zoneText = if (!zoneRevealed) {
             if (state[me + 11].toInt() == 0) "AGUARDANDO SALTO • ZONA SEGURA EM BREVE"
@@ -1140,7 +1141,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
     private val emotes = listOf("😀", "😡", "😱", "👍", "💀")
 
     private fun weaponSlotIndexes(): List<Int> =
-        (0 until 6).filter { i -> hud[Hud.INV + i * 2].toInt().let { it != 0 && BattleItems.isGun(it) && !BattleItems.isThrowable(it) } } + -1
+        (0 until Inventory.SIZE).filter { i -> hud[Hud.INV + i * 2].toInt().let { it != 0 && BattleItems.isGun(it) && !BattleItems.isThrowable(it) } } + -1
 
     private fun weaponRows(): Int = (weaponSlotIndexes().size + 2) / 3
 

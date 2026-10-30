@@ -19,9 +19,9 @@ class BattleMapView(context: Context,private val image: Bitmap?,private val stat
   rect.set((width-size)/2,(height-size)/2,(width+size)/2,(height+size)/2)
   p.color=Color.rgb(35,55,40);c.drawRect(rect,p);image?.let{c.drawBitmap(it,null,rect,null)}
   val own=(0 until state[16].toInt()).map{24+it*32}.firstOrNull{state[it].toInt()==localId}
-  val zoneRevealed=state[11]>0f||state[12]>0f||(state[2]>=25f&&(own==null||state[own+11].toInt()!=0))||state[2]>=38f
+  val zoneRevealed=state[11]>0f||state[12]>0f||state[1].toInt()==2||(state[1].toInt()==1&&(own==null||state[own+11].toInt()==3)&&state[22]>=30f)
   c.save();c.clipRect(rect)
-  if(zoneRevealed){val pre=if(state[11].toInt()==0&&state[12]<=0f)((state[2]-25f)/70f).coerceIn(0f,0.72f) else 0f;val zx=state[4]+(state[7]-state[4])*pre;val zz=state[5]+(state[8]-state[5])*pre;val zr=state[6]+(state[9]-state[6])*pre;p.style=Paint.Style.STROKE;p.strokeWidth=2.2f*d;p.color=Palette.cyan;point(zx,zz).let{c.drawCircle(it.x,it.y,zr/1440*size,p)};p.strokeWidth=1.8f*d;p.color=Color.WHITE;point(state[7],state[8]).let{c.drawCircle(it.x,it.y,state[9]/1440*size,p)}}
+  if(zoneRevealed){val waitProg=if(state[1].toInt()==2)(state[22]/(state[22]+state[10]).coerceAtLeast(30f)).coerceIn(0f,1f) else 0f;val initWait=state[11].toInt()==0&&state[12]<=0f;val zx=if(initWait)720f else state[4];val zz=if(initWait)720f else state[5];val zr=if(initWait)(1050f+(state[6]-1050f)*waitProg) else state[6];p.style=Paint.Style.STROKE;p.strokeWidth=2.2f*d;p.color=Palette.cyan;point(zx,zz).let{c.drawCircle(it.x,it.y,zr/1440*size,p)};p.strokeWidth=1.8f*d;p.color=Color.WHITE;point(state[7],state[8]).let{c.drawCircle(it.x,it.y,state[9]/1440*size,p)}}
   p.style=Paint.Style.FILL
   p.textSize=9*d;p.color=Color.WHITE
   coords.forEachIndexed{i,coord->point(coord.first.toFloat(),coord.second.toFloat()).let{c.drawText(regionNames[i],it.x,it.y,p)}}

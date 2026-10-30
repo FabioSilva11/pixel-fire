@@ -468,6 +468,14 @@ void BattleRoyale::actions(PlayerState &p, float dt) {
                 if (weapon(inv.slots[i].id) && inv.slots[i].count > 0) {
                     p.equipped = i;
                     p.ammo = float(p.clips[inv.slots[i].id]);
+                    if (p.ammo < 1.f && inv.slots[i].id != KNIFE) {
+                        const auto ws = weaponSpec(inv.slots[i].id);
+                        const int fill = std::min(ws.magazine, inv.count(ws.ammo));
+                        if (fill > 0 && inv.take(ws.ammo, fill)) {
+                            p.ammo = float(fill);
+                            p.clips[inv.slots[i].id] = fill;
+                        }
+                    }
                     break;
                 }
     }
