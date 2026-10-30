@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -12,13 +13,12 @@ android {
         applicationId = "com.fabiosilva.ecosdeeldra"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.9.0"
+        versionCode = 13
+        versionName = "0.10.0"
 
         ndk {
-            // Celulares atuais (arm64) e antigos (armv7). Ao rodar pelo Android Studio,
-            // só a ABI do aparelho conectado é compilada.
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            // Celulares atuais (arm64). Compilar apenas arm64 economiza RAM e metade do tempo nativo.
+            abiFilters += listOf("arm64-v8a")
         }
         externalNativeBuild {
             cmake {
@@ -48,6 +48,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
 }
@@ -57,6 +58,15 @@ kotlin {
 }
 
 dependencies {
+    val composeBom = platform("androidx.compose:compose-bom:2025.09.00")
+    implementation(composeBom)
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.runtime:runtime")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.activity:activity-ktx:1.13.0")
     // O lint de release exige Fragment >= 1.3.0 para registerForActivityResult; a dependência transitiva trazia 1.1.0.
     implementation("androidx.fragment:fragment:1.8.6")

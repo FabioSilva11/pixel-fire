@@ -116,13 +116,12 @@ struct FrameScene {
     std::vector<ShadowBlob> shadows;
     std::vector<Decal> decals;
     std::vector<Beam> beams;
-    bool portalVisible = false;
-    Vec3 portalCenter;
-    float portalYaw = 0;
-    float portalOpen = 0;
     float drawDistance = 140;
     Vec3 focus;  // centro de prioridade dos uploads (o jogador)
     UploadBudget upload;
+    float lodNearDistance = 140, lodFarDistance = 420, lodHysteresis = 20;
+    Vec3 zoneCenter{720, 0, 720};
+    float zoneRadius = 0, zoneAlpha = 0;
 };
 
 class Renderer {
@@ -140,6 +139,7 @@ public:
     void releaseCharacter(CharacterAsset& asset);
     const RenderStats& stats() const { return stats_; }
     int pendingUploads() const { return stats_.uploadsPending; }
+    bool worldGpuReady(const World& world) const;
 
 private:
     void createPrograms();
@@ -147,6 +147,7 @@ private:
     void uploadBlockTextures();
     void syncChunks(World& world, const FrameScene& scene);
     void uploadChunk(Chunk& chunk, size_t bytes);
+    void uploadMesh(ChunkMesh& mesh, ChunkGpu& gpu, uint32_t version, bool retainCpu);
     void ensureQuadIndices(size_t quads);
     void drawSky(const FrameScene& scene, const Mat4& viewProj);
     void drawClouds(const FrameScene& scene, const Mat4& viewProj);

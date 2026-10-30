@@ -5,25 +5,6 @@
 #include <cmath>
 
 namespace zz::horizonte {
-namespace {
-struct FloatingIsland { int x, z, radius, cap; };
-FloatingIsland floatingIsland(uint32_t seed, int cx, int cz) {
-    using terrain_internal::noise;
-    uint64_t s = uint64_t(seed) + 1919;
-    return {cx * 128 + 32 + int(noise(s, cx * 3.1, cz * 3.1) * 64),
-            cz * 128 + 32 + int(noise(s, cx * 3.1 + 18, cz * 3.1) * 64),
-            15 + int(noise(s, cx * 3.1, cz * 3.1 + 19) * 12),
-            61 + int(noise(s, cx * 3.1 + 31, cz * 3.1 + 31) * 22)};
-}
-}
-
-FloatingColumn floatingColumn(uint32_t seed, int x, int z) {
-    auto i = floatingIsland(seed, terrain_internal::fd(x, 128), terrain_internal::fd(z, 128));
-    double d = std::hypot(x - i.x, z - i.z) / i.radius;
-    if (d >= 1) return {};
-    return {i.cap - int((1 - d * .65) * i.radius), i.cap};
-}
-
 double riverDistance(uint32_t seed, int x, int z) {
     double river = 64 + 16 * std::sin(z * .046) +
                    8 * (terrain_internal::noise(seed, z * .04, 2) - .5);
@@ -33,12 +14,6 @@ double riverDistance(uint32_t seed, int x, int z) {
 bool clearFootprint(const Terrain& terrain, uint32_t seed, int x, int z, float radius) {
     // Aldeias têm casas, campos e caminhos até 45 blocos do centro.
     if (!terrain.villagesNear(x, z, int(std::ceil(radius))).empty()) return false;
-    int r = int(std::ceil(radius));
-    for (int cz = terrain_internal::fd(z-r,128); cz <= terrain_internal::fd(z+r,128); ++cz)
-        for (int cx = terrain_internal::fd(x-r,128); cx <= terrain_internal::fd(x+r,128); ++cx) {
-            auto i = floatingIsland(seed,cx,cz);
-            if (std::hypot(x-i.x,z-i.z) < i.radius + radius) return false;
-        }
     return true;
 }
 

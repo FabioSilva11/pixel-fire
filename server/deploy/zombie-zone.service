@@ -1,0 +1,31 @@
+[Unit]
+Description=Zombie Zone dedicated Battle Royale
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zombie-zone
+Group=zombie-zone
+WorkingDirectory=/opt/zombie-zone/source/server
+ExecStart=/opt/zombie-zone/node-v24.22.1-linux-x64/bin/node --max-old-space-size=192 src/service.mjs
+Environment=NODE_ENV=production
+Environment=ZZ_MAX_PLAYERS=8
+EnvironmentFile=-/etc/zombie-zone/server.env
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=100
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/zombie-zone
+MemoryMax=640M
+TasksMax=64
+LimitNOFILE=1024
+UMask=0077
+StandardOutput=append:/var/log/zombie-zone/server.log
+StandardError=append:/var/log/zombie-zone/server.log
+
+[Install]
+WantedBy=multi-user.target

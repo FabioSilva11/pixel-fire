@@ -1,6 +1,5 @@
 package com.fabiosilva.ecosdeeldra
 
-import com.fabiosilva.ecosdeeldra.objective.ObjectiveText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,7 +22,7 @@ class DocsConsistencyTest {
     fun readmeStatesTheOfficialObjective() {
         val text = readme()
         assumeTrue("README.md não encontrado", text != null)
-        assertTrue("README sem a frase oficial", text!!.lowercase().contains(ObjectiveText.SENTENCE))
+        assertTrue("README sem a frase oficial", text!!.contains("Battle Royale online"))
     }
 
     @Test

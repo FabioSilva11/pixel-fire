@@ -241,7 +241,7 @@ void lanternPost(BlockSink& w, int x, int y, int z, DecorOut& out) {
 }
 
 void decorateCamp(BlockSink& w, const Camp& camp, const Theme& theme, Rng& rng, DecorOut& out) {
-    if (isBuildingKind(camp.kind) && !camp.start && !camp.portal) {
+    if (isBuildingKind(camp.kind) && !camp.start) {
         buildBuilding(w, camp, theme, rng, out);
         return;
     }
@@ -263,7 +263,7 @@ void decorateCamp(BlockSink& w, const Camp& camp, const Theme& theme, Rng& rng, 
         x = cx + static_cast<int>(std::lround(std::cos(ang) * dist));
         z = cz + static_cast<int>(std::lround(std::sin(ang) * dist));
     };
-    bool fire = !camp.portal && (camp.kind == K_FIRE || camp.kind == K_FARM || camp.kind == K_OUTPOST || camp.start);
+    bool fire = (camp.kind == K_FIRE || camp.kind == K_FARM || camp.kind == K_OUTPOST || camp.start);
     if (fire) {
         w.set(cx, y - 1, cz, B_CAMPFIRE);
         out.campfires.push_back({cx + 0.5f, static_cast<float>(y), cz + 0.5f});
@@ -284,7 +284,7 @@ void decorateCamp(BlockSink& w, const Camp& camp, const Theme& theme, Rng& rng, 
                 ringPos(base + kPi * 0.25f + i * kPi, camp.radius * 0.45f, x, z);
                 for (int k = -1; k <= 1; ++k) w.set(x + (i ? k : 0), y, z + (i ? 0 : k), B_COBBLE);
             }
-            if (!camp.portal) {
+            {
                 lanternPost(w, cx + 1, y, cz - 1, out);
                 out.chests.push_back({cx - 1.5f, static_cast<float>(y), cz + 1.5f});
             }
@@ -397,57 +397,6 @@ void decorateCamp(BlockSink& w, const Camp& camp, const Theme& theme, Rng& rng, 
             break;
         }
     }
-}
-
-void buildPortal(BlockSink& w, const Camp& camp, const Vec3& towards, Vec3& base, float& yaw, DecorOut& out) {
-    int cx = static_cast<int>(std::floor(camp.center.x)), cz = static_cast<int>(std::floor(camp.center.z));
-    int y = static_cast<int>(camp.center.y);
-    Vec3 dir = normalize(Vec3(towards.x - camp.center.x, 0, towards.z - camp.center.z));
-    bool alongZ = std::fabs(dir.x) > std::fabs(dir.z);  // portal voltado para ±X: moldura ao longo de Z
-    for (int a = -2; a <= 2; ++a) {
-        for (int dy = -1; dy <= 4; ++dy) {
-            int x = alongZ ? cx : cx + a;
-            int z = alongZ ? cz + a : cz;
-            bool frame = std::abs(a) == 2 || dy == -1 || dy == 4;
-            w.set(x, y + dy, z, frame ? B_OBSIDIAN : B_AIR);
-        }
-    }
-    base = {cx + 0.5f, static_cast<float>(y), cz + 0.5f};
-    yaw = alongZ ? (dir.x > 0 ? yawFromDirection(1, 0) : yawFromDirection(-1, 0))
-                 : (dir.z > 0 ? yawFromDirection(0, 1) : yawFromDirection(0, -1));
-    out.lights.push_back({cx + 0.5f, y + 2.0f, cz + 0.5f});
-}
-
-void buildNest(BlockSink& w, const Camp& camp, Rng& rng, DecorOut& out, Vec3& core) {
-    int cx = static_cast<int>(std::floor(camp.center.x)), cz = static_cast<int>(std::floor(camp.center.z));
-    int y = static_cast<int>(camp.center.y);
-    int r = static_cast<int>(camp.radius);
-    // Chão infectado: rocha avermelhada com veios de magma e cogumelos.
-    for (int dz = -r; dz <= r; ++dz)
-        for (int dx = -r; dx <= r; ++dx) {
-            float d = std::sqrt(static_cast<float>(dx * dx + dz * dz));
-            if (d > r - 0.5f) continue;
-            float n = hashFloat(cx + dx, cz + dz, 913);
-            if (d > r - 2.5f && n < 0.45f) continue;
-            w.set(cx + dx, y - 1, cz + dz, n < 0.12f ? B_MAGMA : B_NETHERRACK);
-            if (n > 0.9f && d > 3.0f) w.set(cx + dx, y, cz + dz, B_MUSHROOM_RED);
-        }
-    // Espinhos de obsidiana ao redor.
-    int spikes = rng.rangeInt(6, 9);
-    float base = rng.range(0, kTwoPi);
-    for (int i = 0; i < spikes; ++i) {
-        float ang = base + i * kTwoPi / spikes + rng.range(-0.2f, 0.2f);
-        float dist = camp.radius - rng.range(1.5f, 3.0f);
-        int x = cx + static_cast<int>(std::lround(std::cos(ang) * dist));
-        int z = cz + static_cast<int>(std::lround(std::sin(ang) * dist));
-        int h = rng.rangeInt(1, 2);
-        for (int k = 0; k < h; ++k) w.set(x, y + k, z, k == h - 1 && rng.chance(0.5f) ? B_MAGMA : B_OBSIDIAN);
-    }
-    // Pedestal central.
-    for (int dz = -1; dz <= 1; ++dz)
-        for (int dx = -1; dx <= 1; ++dx) w.set(cx + dx, y, cz + dz, (dx == 0 && dz == 0) ? B_MAGMA : B_OBSIDIAN);
-    core = {cx + 0.5f, y + 2.6f, cz + 0.5f};
-    out.lights.push_back({cx + 0.5f, y + 2.0f, cz + 0.5f});
 }
 
 }  // namespace zz

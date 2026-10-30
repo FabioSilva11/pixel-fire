@@ -41,7 +41,7 @@ object Items {
         ItemDef(FIRE_AMMO, "Munição incendiária", "45 s de tiros com +50% de dano.", ItemKind.BUFF, 0xFFFFA53D.toInt()),
         ItemDef(ARMOR, "Colete", "Absorve 70% do dano até se desgastar.", ItemKind.BUFF, 0xFF9DB0D8.toInt()),
         ItemDef(GRENADE, "Granada", "Segure o botão para ver onde cai; solte para lançar.", ItemKind.THROWABLE, 0xFFA8C46A.toInt()),
-        ItemDef(MOLOTOV, "Molotov", "Fogo no chão que queima os zumbis (não você).", ItemKind.THROWABLE, 0xFFFF8A3D.toInt()),
+        ItemDef(MOLOTOV, "Molotov", "Item da prévia de equipamento.", ItemKind.THROWABLE, 0xFFFF8A3D.toInt()),
         ItemDef(SMOKE, "Granada de fumaça", "Cria uma cortina de fumaça que bloqueia a visão e os tiros.", ItemKind.THROWABLE, 0xFFB8C2C9.toInt()),
     )
 

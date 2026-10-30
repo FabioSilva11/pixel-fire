@@ -9,7 +9,7 @@ namespace zz {
 
 struct CharacterAsset;
 
-enum class VoxelItem { Rifle, Shotgun, Grenade, Smoke, Molotov, Knife, Count };
+enum class VoxelItem { Rifle, Shotgun, Grenade, Smoke, Molotov, Knife, Pistol, Smg, Sniper, Count };
 
 // Monta malha e textura do item no espaço da mão (x = direita, y = cima, z = cano para a frente).
 void buildVoxelItem(VoxelItem item, CharacterAsset& out);

@@ -14,8 +14,6 @@ namespace zz {
 struct WorldLayout {
     Vec3 start;
     float startYaw = 0;
-    Vec3 portalBase;        // centro da base interna do portal
-    float portalYaw = 0;    // yaw da normal do portal (de onde o jogador vem)
     std::vector<Vec3> lights;       // lanternas e fogueiras (luz pontual)
     std::vector<Vec3> campfires;    // partículas de fogo
     int seaLevel = 13;

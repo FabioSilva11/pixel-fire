@@ -61,6 +61,11 @@ struct Chunk {
     std::vector<uint8_t> blocks;   // kChunkSize * kChunkSize * altura
     int16_t ground[kChunkSize * kChunkSize] = {};
     ChunkMesh mesh;
+    ChunkMesh lodMesh[2]; // baked medium terrain and 4x4-chunk HLOD
+    ChunkGpu lodGpu[2];
+    bool hasLods = false, detailedLandmark = false, hlodActive = false;
+    uint8_t visualLod = 0;
+    AABB hlodBounds;
     AABB bounds;
     std::vector<Vec3> lights;     // lanternas/fogueiras geradas com o chunk
     std::vector<Vec3> campfires;  // partículas de fogo
@@ -126,6 +131,14 @@ public:
     void reset(int width, int height, int depth);
     // Mundo em streaming: chunks gerados por `source` ao redor do jogador e descartados ao longe.
     void resetStreaming(int width, int height, int depth, ChunkSource* source);
+
+    // Finite loading is explicit: no call to stream generates or discards its chunks.
+    void beginFinitePreload(int width, int height, int depth, ChunkSource* source);
+    int preloadFinite(int maxGenerate, int maxMesh);
+    bool finitePreloadReady() const;
+    float finitePreloadProgress() const;
+    bool finitePreload() const { return finiteSource_ != nullptr; }
+    void selectVisualLods(const Vec3& camera, float nearDistance=140, float farDistance=420, float hysteresis=20);
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -232,6 +245,8 @@ private:
     uint32_t revision_ = 0;
     std::unordered_map<uint32_t, std::unordered_map<uint16_t, uint8_t>> edits_;
     ChunkSource* source_ = nullptr;
+    ChunkSource* finiteSource_ = nullptr;
+    size_t preloadGenerated_ = 0, preloadMeshed_ = 0;
     std::vector<std::unique_ptr<Chunk>> grid_;
     std::vector<Chunk*> list_;
     std::vector<ChunkGpu> gpuGarbage_;

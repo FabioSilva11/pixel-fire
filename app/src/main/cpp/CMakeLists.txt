@@ -34,15 +34,8 @@ add_library(zombiezone SHARED
     render/renderer.cpp
     render/voxel_weapons.cpp
     game/game.cpp
-    game/game_world.cpp
-    game/game_contract.cpp
-    game/game_items.cpp
-    game/game_mission.cpp
-    game/game_perf.cpp
-    game/game_survival.cpp
-    game/game_zombies.cpp
-    game/nav.cpp
-    game/perf_bench.cpp
+    game/game_visual.cpp
+    world/competitive_map.cpp
 )
 
 # Preserva a geração determinística do terreno a partir da semente.

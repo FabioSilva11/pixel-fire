@@ -1,5 +1,5 @@
 // Terreno contínuo Horizonte gerado por chunks: três biomas, rios, cavernas,
-// aldeias e ilhas flutuantes, com os objetivos e construções das missões.
+// aldeias no relevo terrestre. O mapa competitivo é preparado previamente.
 #pragma once
 
 #include <cstdint>
@@ -20,9 +20,8 @@ constexpr int kIslandHeight = horizonte::kHeight;
 constexpr int kIslandCell = 128;        // grade de pontos de interesse (múltiplo de 16)
 constexpr int kIslandCells = kIslandSize / kIslandCell;
 constexpr float kIslandCenter = kIslandSize * 0.5f;
-constexpr int kNestCount = 3;
 
-enum PoiRole : uint8_t { ROLE_NONE = 0, ROLE_START, ROLE_NEST, ROLE_PORTAL };
+enum PoiRole : uint8_t { ROLE_NONE = 0, ROLE_START };
 
 struct IslandPoi {
     bool exists = false;
@@ -32,16 +31,12 @@ struct IslandPoi {
     float radius = 7;
     int kind = K_FIRE;
     PoiRole role = ROLE_NONE;
-    int objective = -1;   // índice do ninho
 };
 
 struct PoiStamp {
     std::unordered_map<uint64_t, uint8_t> edits;  // position_key.h: 13+13+7 bits
     int minX = 0, maxX = -1, minZ = 0, maxZ = -1;
     DecorOut decor;
-    Vec3 nestCore;
-    Vec3 portalBase;
-    float portalYaw = 0;
 };
 
 struct ColumnInfo {
@@ -59,9 +54,10 @@ struct ColumnInfo {
 
 class IslandGenerator : public ChunkSource {
 public:
-    // objectives = false: ilha livre (modo sobrevivência), sem ninhos nem portal.
-    IslandGenerator(const Theme& theme, int stage, uint32_t seed, bool objectives = true);
+    IslandGenerator(const Theme& theme, int stage, uint32_t seed);
     void generate(Chunk& chunk, int height) override;
+    void reservePoi(const Vec3& center, int kind, float radius);
+    void suppressProceduralPois();
 
     float landMask(float x, float z) const;
     float secondaryWeight(float x, float z) const;
@@ -81,9 +77,6 @@ public:
     const Theme& secondary() const { return secondary_; }
     Vec3 start() const { return start_; }
     float startYaw() const { return startYaw_; }
-    const std::vector<int>& nests() const { return nests_; }
-    int portalId() const { return portal_; }
-    float routeLength() const { return route_; }
 
 private:
     IslandPoi basePoi(int cellX, int cellZ) const;
@@ -98,15 +91,10 @@ private:
     horizonte::Terrain terrain_;
     int stage_ = 1;
     uint32_t seed_ = 1;
-    bool objectives_ = true;
     int sea_ = horizonte::kSea;
     Vec3 start_;
     float startYaw_ = 0;
-    std::vector<int> nests_;
-    int portal_ = -1;
-    float route_ = 0;
     std::unordered_map<int, PoiRole> roles_;
-    std::unordered_map<int, int> objectiveIndex_;
     std::vector<IslandPoi> cache_;
     std::vector<uint8_t> cached_;
     std::unordered_map<int, PoiStamp> stamps_;

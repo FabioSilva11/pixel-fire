@@ -335,6 +335,20 @@ void main() {
         float ring = smoothstep(0.76, 0.86, r) * (1.0 - smoothstep(0.92, 1.0, r));
         float fill = (1.0 - smoothstep(0.0, 0.95, r)) * 0.32;
         c = vec4(v_color.rgb, v_color.a * (ring + fill) * pulse);
+    } else if (u_mode == 2) {
+        float h = 1.0 - v_uv.y;
+        float wave = 0.5 + 0.5 * sin(v_world.y * 0.55 - u_time * 3.8 + (v_world.x + v_world.z) * 0.08);
+        float pulse = 0.75 + 0.25 * sin(u_time * 4.5 + (v_world.x - v_world.z) * 0.05);
+        float gx = abs(fract((v_world.x + v_world.z) * 0.26) - 0.5);
+        float gy = abs(fract(v_world.y * 0.26 - u_time * 0.35) - 0.5);
+        float hexLine = smoothstep(0.41, 0.49, max(gx, gy));
+        float pillar = smoothstep(0.44, 0.50, abs(v_uv.x - 0.5));
+        float bands = smoothstep(0.82, 0.98, sin(v_world.y * 1.15 - u_time * 2.6));
+        float topFade = 1.0 - smoothstep(0.75, 1.0, h);
+        vec3 baseCol = mix(vec3(0.08, 0.52, 1.0), vec3(0.32, 0.88, 1.0), wave * 0.65 + hexLine * 0.35);
+        vec3 col = mix(baseCol, vec3(0.78, 0.97, 1.0), clamp(hexLine * 0.75 + bands * 0.65 + pillar * 0.55, 0.0, 1.0));
+        float alpha = v_color.a * topFade * (0.36 + 0.26 * wave + 0.40 * hexLine + 0.32 * bands + 0.28 * pillar) * pulse;
+        c = vec4(col, clamp(alpha, 0.0, 0.92));
     } else {
         vec2 p = v_uv - 0.5;
         float r = length(p * vec2(1.0, 0.75));
@@ -429,7 +443,7 @@ void Renderer::createPrograms() {
 void Renderer::createStaticBuffers() {
     glGenVertexArrays(1, &skyVao_);
 
-    // Cubo unitário (armas, coletáveis, itens dos zumbis).
+    // Cubo unitário (armas e coletáveis).
     glGenVertexArrays(1, &boxVao_);
     glGenBuffers(1, &boxVbo_);
     glGenBuffers(1, &boxIbo_);
@@ -632,6 +646,8 @@ void Renderer::syncChunks(World& world, const FrameScene& scene) {
             // Contexto perdido: a malha da CPU já foi liberada, então remalha.
             gpu = ChunkGpu{};
             c->dirty = true;
+            c->meshed = false;
+            for(auto& g:c->lodGpu)g=ChunkGpu{};
             continue;
         }
         uploadQueue_.push_back(c);
@@ -647,7 +663,8 @@ void Renderer::syncChunks(World& world, const FrameScene& scene) {
     size_t bytes = 0;
     int n = 0;
     for (Chunk* c : uploadQueue_) {
-        const size_t cb = (c->mesh.opaque.size() + c->mesh.cutout.size() + c->mesh.water.size()) * sizeof(VoxelVertex);
+        size_t cb = (c->mesh.opaque.size() + c->mesh.cutout.size() + c->mesh.water.size()) * sizeof(VoxelVertex);
+        if(c->hasLods)for(const auto& m:c->lodMesh)cb+=(m.opaque.size()+m.cutout.size()+m.water.size())*sizeof(VoxelVertex);
         if (!ub.unlimited && n >= 1 && (n >= ub.maxChunks || bytes + cb > ub.maxBytes)) break;  // piso: sempre sobe o mais próximo
         uploadChunk(*c, cb);
         bytes += cb;
@@ -660,15 +677,20 @@ void Renderer::syncChunks(World& world, const FrameScene& scene) {
     stats_.uploadMs = static_cast<float>(perf::nowMs() - t0);
 }
 
-void Renderer::uploadChunk(Chunk& chunk, size_t bytes) {
-    Chunk* c = &chunk;
-    ChunkGpu& gpu = c->gpu;
+void Renderer::uploadMesh(ChunkMesh& mesh,ChunkGpu& gpu,uint32_t version,bool retainCpu) {
+    const size_t bytes=(mesh.opaque.size()+mesh.cutout.size()+mesh.water.size())*sizeof(VoxelVertex);
+    // Most HLOD members have no independent geometry. Do not allocate thousands of empty GL objects.
+    if(bytes==0) {
+        if(gpu.contextId==contextId_){glDeleteVertexArrays(3,gpu.vao);glDeleteBuffers(3,gpu.vbo);}
+        gpuBytes_-=std::min<size_t>(gpuBytes_,gpu.bytes);gpu=ChunkGpu{};
+        gpu.contextId=contextId_;gpu.version=version;return;
+    }
     if (gpu.contextId != contextId_) {
         glGenVertexArrays(3, gpu.vao);
         glGenBuffers(3, gpu.vbo);
         gpu.contextId = contextId_;
     }
-    const std::vector<VoxelVertex>* lists[3] = {&c->mesh.opaque, &c->mesh.cutout, &c->mesh.water};
+    const std::vector<VoxelVertex>* lists[3] = {&mesh.opaque, &mesh.cutout, &mesh.water};
     for (int pass = 0; pass < 3; ++pass) {
         const auto& verts = *lists[pass];
         gpu.quads[pass] = static_cast<int>(verts.size() / 4);
@@ -685,11 +707,25 @@ void Renderer::uploadChunk(Chunk& chunk, size_t bytes) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadIbo_);
         glBindVertexArray(0);
     }
-    gpu.version = c->version;
+    gpu.version = version;
     gpuBytes_ = gpuBytes_ - std::min<size_t>(gpuBytes_, gpu.bytes) + bytes;
     gpu.bytes = static_cast<uint32_t>(bytes);
     // A malha já está na GPU: libera a cópia da CPU (mundo grande = muitos chunks).
-    c->mesh = ChunkMesh();
+    if(!retainCpu)mesh = ChunkMesh();
+}
+
+void Renderer::uploadChunk(Chunk& c,size_t) {
+    uploadMesh(c.mesh,c.gpu,c.version,false);
+    if(c.hasLods)for(int i=0;i<2;++i)uploadMesh(c.lodMesh[i],c.lodGpu[i],c.version,true);
+}
+
+bool Renderer::worldGpuReady(const World& world) const {
+    if(!world.finitePreloadReady())return false;
+    for(const Chunk* c:world.chunks()) {
+        if(!c->meshed||c->dirty||c->gpu.contextId!=contextId_||c->gpu.version!=c->version)return false;
+        if(c->hasLods)for(const auto& gpu:c->lodGpu)if(gpu.contextId!=contextId_||gpu.version!=c->version)return false;
+    }
+    return true;
 }
 
 void Renderer::setLightUniforms(const FrameScene& scene, const ShaderProgram& p) {
@@ -731,13 +767,13 @@ void Renderer::setVoxelUniforms(const FrameScene& scene, const ShaderProgram& p,
 
 void Renderer::drawChunks(const FrameScene& scene, int pass, const Vec4* planes, float maxDist, const Vec3& center, int* drawCounter) {
     ZZ_TRACE_SCOPE("ZZ drawChunks");
-    struct Item { const Chunk* chunk; float dist; };
+    struct Item { const Chunk* chunk; const ChunkGpu* gpu; float dist; };
     static std::vector<Item> items;
     items.clear();
     for (const Chunk* c : scene.world->chunks()) {
-        const ChunkGpu& gpu = c->gpu;
+        const ChunkGpu& gpu = c->visualLod==0 ? c->gpu : c->lodGpu[c->visualLod-1];
         if (gpu.contextId != contextId_ || gpu.quads[pass] == 0) continue;
-        const AABB& b = c->bounds;
+        const AABB& b = c->visualLod==2 ? c->hlodBounds : c->bounds;
         Vec3 mid = (b.min + b.max) * 0.5f;
         float dist = distXZ(mid, center);
         if (dist > maxDist + 12) continue;
@@ -747,7 +783,7 @@ void Renderer::drawChunks(const FrameScene& scene, int pass, const Vec4* planes,
             Vec3 p(pl.x >= 0 ? b.max.x : b.min.x, pl.y >= 0 ? b.max.y : b.min.y, pl.z >= 0 ? b.max.z : b.min.z);
             if (pl.x * p.x + pl.y * p.y + pl.z * p.z + pl.w < 0) { visible = false; break; }
         }
-        if (visible) items.push_back({c, dist});
+        if (visible) items.push_back({c, &gpu, dist});
     }
     if (pass == 2) std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.dist > b.dist; });
     else std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) { return a.dist < b.dist; });
@@ -755,7 +791,7 @@ void Renderer::drawChunks(const FrameScene& scene, int pass, const Vec4* planes,
     glGetIntegerv(GL_CURRENT_PROGRAM, &program);
     const GLint origin = glGetUniformLocation(program, "u_chunkOrigin");
     for (const Item& it : items) {
-        const ChunkGpu& gpu = it.chunk->gpu;
+        const ChunkGpu& gpu = *it.gpu;
         glUniform2f(origin, it.chunk->cx * 16.0f, it.chunk->cz * 16.0f);
         glBindVertexArray(gpu.vao[pass]);
         glDrawElements(GL_TRIANGLES, gpu.quads[pass] * 6, GL_UNSIGNED_INT, nullptr);
@@ -944,16 +980,24 @@ void Renderer::drawBillboards(const FrameScene& scene, const Mat4& viewProj) {
     flush(3);
     glDisable(GL_POLYGON_OFFSET_FILL);
 
-    // 2) portal aberto
-    if (scene.portalVisible && scene.portalOpen > 0.01f) {
-        Vec3 n = forwardFromYaw(scene.portalYaw);
-        Vec3 axis(-n.z, 0, n.x);
-        Vec3 b = scene.portalCenter;
-        float hw = 1.5f;
-        Vec3 a0 = b - axis * hw, a1 = b + axis * hw;
-        pushQuad(billboardData_, a0, a1, a1 + Vec3(0, 4, 0), a0 + Vec3(0, 4, 0), Vec4(1, 1, 1, scene.portalOpen));
+    // 2) parede de energia da safe zone
+    if (scene.zoneAlpha > 0.01f && scene.zoneRadius > 0.5f) {
+        constexpr int kSegs = 160;
+        const float r = scene.zoneRadius;
+        const float cx = scene.zoneCenter.x, cz = scene.zoneCenter.z;
+        const float y0 = 0.0f, y1 = 92.0f;
+        const Vec4 wallCol(0.18f, 0.72f, 1.0f, scene.zoneAlpha);
+        for (int k = 0; k < kSegs; ++k) {
+            const float a0 = k * kTwoPi / kSegs, a1 = (k + 1) * kTwoPi / kSegs;
+            const Vec3 p0(cx + std::cos(a0) * r, y0, cz + std::sin(a0) * r);
+            const Vec3 p1(cx + std::cos(a1) * r, y0, cz + std::sin(a1) * r);
+            const Vec3 mid = (p0 + p1) * 0.5f;
+            if (distXZ(mid, scene.cameraPos) > 1100.0f) continue;
+            pushQuad(billboardData_, p0, p1, Vec3(p1.x, y1, p1.z), Vec3(p0.x, y1, p0.z), wallCol);
+        }
         flush(2);
     }
+
 
     // 3) partículas com transparência comum
     for (const Particle& p : scene.particles) {
@@ -990,7 +1034,10 @@ void Renderer::render(FrameScene& scene) {
     if (!voxel_.id) return;
     ZZ_TRACE_SCOPE("ZZ render");
     if (themeDirty_) uploadBlockTextures();
-    if (scene.world) syncChunks(*scene.world, scene);
+    if (scene.world) {
+        scene.world->selectVisualLods(scene.cameraPos,scene.lodNearDistance,scene.lodFarDistance,scene.lodHysteresis);
+        syncChunks(*scene.world, scene);
+    }
     Mat4 viewProj = scene.proj * scene.view;
     extractPlanes(viewProj, frustum_);
 

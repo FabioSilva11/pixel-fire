@@ -81,14 +81,29 @@ uint32_t shadeColor(uint32_t c, float f) {
 
 }  // namespace
 
-IslandGenerator::IslandGenerator(const Theme& theme, int stage, uint32_t seed, bool objectives)
-    : primary_(theme), terrain_(seed), stage_(std::max(1, stage)), seed_(seed), objectives_(objectives) {
+IslandGenerator::IslandGenerator(const Theme& theme, int stage, uint32_t seed)
+    : primary_(theme), terrain_(seed), stage_(std::max(1, stage)), seed_(seed) {
     // Bioma secundário: outra zona, escolhida pela semente.
     int other = (theme.id + 1 + static_cast<int>(seed_ % 3u)) % 4;
     secondary_ = themeForStage(other * 5 + 1);
     cache_.resize(static_cast<size_t>(kIslandCells) * kIslandCells);
     cached_.assign(static_cast<size_t>(kIslandCells) * kIslandCells, 0);
     chooseLayout();
+}
+
+void IslandGenerator::reservePoi(const Vec3& center,int kind,float radius) {
+    const int cx=int(center.x)/kIslandCell,cz=int(center.z)/kIslandCell;
+    if(cx<0||cz<0||cx>=kIslandCells||cz>=kIslandCells)return;
+    const int id=cz*kIslandCells+cx;
+    IslandPoi p;p.exists=true;p.cellX=cx;p.cellZ=cz;p.id=id;p.kind=kind;
+    p.center={std::floor(center.x)+.5f,clampf(std::round(naturalHeight(center.x,center.z)),float(sea_+2),float(kIslandHeight-28)),std::floor(center.z)+.5f};
+    p.radius=radius;cache_[id]=p;cached_[id]=1;stamps_.erase(id);roles_.erase(id);
+}
+
+void IslandGenerator::suppressProceduralPois() {
+    // Competitive landmarks use their own fixed architectural layout, never nearest random POIs.
+    roles_.clear();stamps_.clear();
+    for(size_t i=0;i<cache_.size();++i) { cache_[i]=IslandPoi{}; cached_[i]=1; }
 }
 
 float IslandGenerator::landMask(float x, float z) const {
@@ -160,13 +175,7 @@ const IslandPoi& IslandGenerator::poi(int cx, int cz) {
         p.exists = true;
         p.role = role->second;
         if (p.role == ROLE_START) { p.kind = K_FIRE; p.radius = 7.0f; }
-        if (p.role == ROLE_NEST) {
-            p.kind = K_NEST;
-            p.radius = 10.0f;
-            auto idx = objectiveIndex_.find(static_cast<int>(id));
-            p.objective = idx != objectiveIndex_.end() ? idx->second : 0;
-        }
-        if (p.role == ROLE_PORTAL) { p.kind = K_PORTAL; p.radius = 8.5f; }
+
     }
     cache_[id] = p;
     cached_[id] = 1;
@@ -200,81 +209,8 @@ void IslandGenerator::chooseLayout() {
     roles_[startId] = ROLE_START;
     Vec2 s(sp.center.x, sp.center.z);
 
-    // Ninhos cada vez mais longe; distâncias crescem um pouco nas fases altas.
-    float scale = 1.0f + std::min(0.6f, std::max(0, stage_ - 8) * 0.03f);
-    const float ranges[kNestCount][2] = {{220, 420}, {400, 660}, {600, 920}};
-    std::vector<Vec2> dirs;
-    auto angleOk = [&](const Vec2& v, float minAngle) {
-        float l = v.length();
-        for (const Vec2& d : dirs) {
-            float c = (v.x * d.x + v.y * d.y) / std::max(1e-3f, l * d.length());
-            if (std::acos(clampf(c, -1, 1)) < minAngle) return false;
-        }
-        return true;
-    };
-    auto pick = [&](float r0, float r1, float minAngle) -> int {
-        for (int attempt = 0; attempt < 500; ++attempt) {
-            float relax = attempt > 300 ? 0.5f : 1.0f;
-            float ang = rng.range(0, kTwoPi), dist = rng.range(r0, r1);
-            Vec2 t(s.x + std::cos(ang) * dist, s.y + std::sin(ang) * dist);
-            if (t.x < 0 || t.y < 0 || t.x >= kIslandSize || t.y >= kIslandSize) continue;
-            IslandPoi b = basePoi(static_cast<int>(t.x) / kIslandCell, static_cast<int>(t.y) / kIslandCell);
-            if (!valid(b) || std::find(used.begin(), used.end(), b.id) != used.end()) continue;
-            Vec2 v(b.center.x - s.x, b.center.z - s.y);
-            if (v.length() < r0 * 0.8f || !angleOk(v, minAngle * relax)) continue;
-            return b.id;
-        }
-        float ang = rng.range(0, kTwoPi), dist = (r0 + r1) * 0.5f;
-        return findNear(s.x + std::cos(ang) * dist, s.y + std::sin(ang) * dist, used);
-    };
-    for (int i = 0; i < (objectives_ ? kNestCount : 0); ++i) {
-        int id = pick(ranges[i][0] * scale, ranges[i][1] * scale, 0.9f);
-        if (id < 0) continue;
-        used.push_back(id);
-        nests_.push_back(id);
-        IslandPoi b = basePoi(id % kIslandCells, id / kIslandCells);
-        dirs.push_back(Vec2(b.center.x - s.x, b.center.z - s.y));
-    }
-    portal_ = objectives_ ? pick(350 * scale, 720 * scale, 0.7f) : -1;
-    if (portal_ >= 0) {
-        used.push_back(portal_);
-        roles_[portal_] = ROLE_PORTAL;
-    }
+    start_ = sp.center + Vec3(0,0,2.5f);
 
-    // Ordena os ninhos pelo caminho mais curto a partir do início (vizinho mais próximo).
-    std::vector<int> ordered;
-    Vec2 cur = s;
-    std::vector<int> left = nests_;
-    route_ = 0;
-    while (!left.empty()) {
-        size_t best = 0;
-        float bestD = 1e9f;
-        for (size_t i = 0; i < left.size(); ++i) {
-            IslandPoi b = basePoi(left[i] % kIslandCells, left[i] / kIslandCells);
-            float d = (Vec2(b.center.x, b.center.z) - cur).length();
-            if (d < bestD) { bestD = d; best = i; }
-        }
-        IslandPoi b = basePoi(left[best] % kIslandCells, left[best] / kIslandCells);
-        route_ += bestD;
-        cur = Vec2(b.center.x, b.center.z);
-        ordered.push_back(left[best]);
-        left.erase(left.begin() + static_cast<long>(best));
-    }
-    nests_ = ordered;
-    for (size_t i = 0; i < nests_.size(); ++i) {
-        roles_[nests_[i]] = ROLE_NEST;
-        objectiveIndex_[nests_[i]] = static_cast<int>(i);
-    }
-    if (portal_ >= 0) {
-        IslandPoi pp = basePoi(portal_ % kIslandCells, portal_ / kIslandCells);
-        route_ += (Vec2(pp.center.x, pp.center.z) - cur).length();
-    }
-
-    start_ = sp.center + Vec3(0, 0, 2.5f);
-    if (!nests_.empty()) {
-        IslandPoi first = basePoi(nests_[0] % kIslandCells, nests_[0] / kIslandCells);
-        startYaw_ = yawFromDirection(first.center.x - start_.x, first.center.z - start_.z);
-    }
 }
 
 bool IslandGenerator::pathLink(int ax, int az, int bx, int bz) {
@@ -365,7 +301,7 @@ void IslandGenerator::generate(Chunk& chunk, int height) {
     horizonte::generate(terrain_,chunk,height);
     ChunkSink sink(chunk,height);
     auto idx = [](int x, int y, int z) { return (size_t(y)*16+z)*16+x; };
-    // O núcleo mantém cavernas/ilhas/aldeias intactas. As sobreposições locais
+    // O núcleo mantém cavernas e aldeias. As sobreposições locais
     // só alteram o chão e a faixa de passagem das trilhas e dos POIs.
     for (int lz=0; lz<16; ++lz)
         for (int lx=0; lx<16; ++lx) {
@@ -373,13 +309,11 @@ void IslandGenerator::generate(Chunk& chunk, int height) {
             ColumnInfo c=column(x,z);
             int natural=terrain_.groundHeight(x,z)+1;
             if (!c.nearPoi && !c.nearPath && c.top == natural) continue;
-            // Caminhos não entram nas casas nem derrubam ilhas do Horizonte.
+            // Caminhos preservam as casas existentes.
             bool village = !terrain_.villagesNear(x,z,0).empty();
             if (village && !c.nearPoi) continue;
             int low=std::max(1,std::min(natural,c.top)-4);
             int high=std::min(height,std::max(natural,c.top)+8);
-            auto floating=horizonte::floatingColumn(seed_,x,z);
-            if (floating.exists()) high=std::min(high,floating.bottom);
             for (int y=low; y<high; ++y) {
                 uint8_t block = y < c.top-1 ? (y < c.top-4 ? B_STONE : c.biome->filler) :
                                 y == c.top-1 ? surfaceBlock(c,x,z,sea_,seed_) :
@@ -415,18 +349,9 @@ const PoiStamp& IslandGenerator::stamp(const IslandPoi& p) {
     PoiStamp& s = stamps_[p.id];
     StampSink sink(s);
     Rng rng(hash2(p.cellX, p.cellZ, seed_ + 811));
-    Camp camp{p.center, p.radius, p.role == ROLE_START, p.role == ROLE_PORTAL, p.kind};
+    Camp camp{p.center, p.radius, p.role == ROLE_START, p.kind};
     const Theme& t = biomeTheme(secondaryWeight(p.center.x, p.center.z), static_cast<int>(p.center.x), static_cast<int>(p.center.z));
-    if (p.role == ROLE_NEST) {
-        buildNest(sink, camp, rng, s.decor, s.nestCore);
-    } else if (p.role == ROLE_PORTAL) {
-        Camp ruins = camp;
-        ruins.kind = K_RUINS;
-        decorateCamp(sink, ruins, t, rng, s.decor);
-        buildPortal(sink, camp, start_, s.portalBase, s.portalYaw, s.decor);
-    } else {
-        decorateCamp(sink, camp, t, rng, s.decor);
-    }
+    decorateCamp(sink,camp,t,rng,s.decor);
     return s;
 }
 
@@ -458,17 +383,15 @@ uint32_t IslandGenerator::mapColor(int x, int z) {
         col = shadeColor(col, clampf(0.84f + (c.top - sea_) * 0.011f + clampf(slope * 0.06f, -0.18f, 0.18f), 0.5f, 1.3f));
     }
     // A aldeia importada é desenhada acima do chão, antes da projeção das
-    // ilhas elevadas (elas podem encobrir os telhados).
+    // construções fixas do mapa competitivo.
     for (const auto& village : terrain_.villagesNear(x, z, 0)) {
         for (const auto& home : village.homes()) {
             if (x >= home[0] - 1 && x <= home[0] + 7 && z >= home[1] - 1 && z <= home[1] + 7)
                 col = blockInfo(village.biome == 2 ? B_SNOW : B_ROOF_RED).mapColor;
         }
     }
-    auto floating = horizonte::floatingColumn(seed_, x, z);
-    if (floating.exists()) col = shadeColor(blockInfo(c.biome->id == 2 ? B_SNOW : B_GRASS).mapColor, 1.12f);
     if (p.exists && distXZ(p.center, Vec3(x + 0.5f, 0, z + 0.5f)) < p.radius) {
-        col = p.role == ROLE_NEST ? 0x8E2A6A : (p.role == ROLE_PORTAL ? 0x6A3FB0 : (isBuildingKind(p.kind) ? 0xB0644A : 0x9A7A4E));
+        col = isBuildingKind(p.kind) ? 0xB0644A : 0x9A7A4E;
     }
     return col;
 }

@@ -133,8 +133,6 @@ void fillColumns(World& world, HeightField& hf, const Theme& theme, int sea, uin
         bool bridge=hf.res(x,z)==R_PATH && hf.naturalAt(x,z)<=sea+.5f;
         int low=std::max(1,std::min(natural,top)-4);
         int high=std::min(world.height(),std::max(natural,top)+8);
-        auto floating=horizonte::floatingColumn(seed,x,z);
-        if (floating.exists()) high=std::min(high,floating.bottom);
         for (int y=low;y<high;++y) {
             uint8_t block=y<top-1 ? (y<top-4 ? B_STONE : B_DIRT) :
                 y==top-1 ? (bridge ? B_PLANKS : hf.res(x,z)==R_PATH ? B_PATH : horizonte::surface(terrain,x,z)) :
@@ -202,7 +200,7 @@ WorldLayout generateLobbyWorld(World& world, const Theme& theme) {
             hf.at(x,z)=naturalHeight(MapShape{},x+.5f,z+.5f,size,theme,seed,sea);
         }
     const float lobbyFloor=std::max(float(sea+2),hf.get(size/2,size/2));
-    Camp camp{{size * 0.5f, lobbyFloor, size * 0.5f}, 6.0f, true, false, K_FIRE};
+    Camp camp{{size * 0.5f, lobbyFloor, size * 0.5f}, 6.0f, true, K_FIRE};
     flattenDisc(hf, camp.center.x, camp.center.z, 9.0f, lobbyFloor, 5.0f, R_CAMP);
     carvePath(hf, {size * 0.5f, size * 0.5f}, {size * 0.5f + 4, size - 4.0f}, seed, sea);
     hf.natural = hf.h;

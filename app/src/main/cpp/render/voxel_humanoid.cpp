@@ -40,25 +40,11 @@ struct Pal {
     Rgb c[4];
 };
 Pal pal4(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { return {{hex(a), hex(b), hex(c), hex(d)}}; }
-Pal ramp(Rgb base) { return {{scaled(base, .78f), scaled(base, .9f), base, scaled(base, 1.1f)}}; }
-
-// Paletas da aparência (espelhadas em Look.kt): pele, cabelo e roupas dos zumbis.
-const Rgb kZombieSkin[8] = {{110, 160, 90}, {96, 148, 104}, {124, 150, 96}, {104, 132, 110},
-                            {128, 164, 84}, {90, 128, 92},  {116, 140, 120}, {98, 156, 80}};
-const Rgb kHair[8] = {{34, 28, 26}, {92, 58, 34}, {222, 186, 96}, {178, 74, 38},
-                      {180, 180, 184}, {58, 104, 214}, {232, 104, 170}, {80, 180, 80}};
-const Rgb kTop[16] = {{198, 52, 46},  {232, 124, 40}, {236, 196, 56}, {84, 170, 62},  {46, 98, 52},  {48, 176, 196},
-                      {56, 108, 206}, {32, 46, 98},   {124, 64, 176}, {226, 110, 170}, {232, 232, 232}, {120, 124, 130},
-                      {36, 38, 44},   {110, 72, 44},  {214, 192, 150}, {232, 186, 48}};
-const Rgb kPants[8] = {{58, 84, 140}, {34, 36, 42}, {176, 150, 102}, {84, 96, 60},
-                       {110, 112, 118}, {150, 40, 40}, {220, 220, 224}, {92, 104, 70}};
-const Rgb kShoes[4] = {{92, 60, 36}, {30, 30, 34}, {226, 226, 226}, {180, 40, 40}};
 
 struct Style {
     Pal skin, hair, jacket, shirt, pants, shoe, white;
     Rgb jacketLight, jacketLighter, jacketDark, pantsLight, pantsDark;
     Rgb brow, eyeWhite, iris, pupil, nose, mouth, seam, collar1, collar2, belt, buckle, sole, lace, cuff1, cuff2, cuffDark;
-    bool zombie = false;
 };
 
 // Herói: as mesmas paletas do protótipo (cabelo castanho, jaqueta escura aberta, camiseta branca, calça e tênis).
@@ -95,36 +81,7 @@ Style heroStyle() {
     return s;
 }
 
-// Zumbis: mesma forma e mesmos padrões, com pele verde, olhos vermelhos e roupa da aparência, rasgada.
-Style zombieStyle(const Look& l) {
-    Style s = heroStyle();
-    s.zombie = true;
-    const Rgb skin = kZombieSkin[l.skin & 7];
-    const Rgb top = kTop[l.topColor & 15];
-    const Rgb pants = kPants[l.pantsColor & 7];
-    s.skin = ramp(skin);
-    s.hair = ramp(scaled(kHair[l.hairColor & 7], .7f));
-    s.jacket = ramp(scaled(top, .72f));
-    s.jacketLight = scaled(top, .95f);
-    s.jacketLighter = scaled(top, 1.1f);
-    s.jacketDark = scaled(top, .42f);
-    s.shirt = ramp({176, 168, 150});
-    s.pants = ramp(scaled(pants, .8f));
-    s.pantsLight = scaled(pants, 1.05f);
-    s.pantsDark = scaled(pants, .45f);
-    s.shoe = ramp(scaled(kShoes[l.shoes & 3], .8f));
-    s.brow = scaled(skin, .55f);
-    s.eyeWhite = {28, 38, 22};
-    s.iris = {214, 38, 30};
-    s.pupil = {255, 96, 60};
-    s.nose = scaled(skin, .8f);
-    s.mouth = {74, 20, 16};
-    s.collar1 = scaled(top, 1.0f);
-    s.collar2 = scaled(top, .85f);
-    s.cuff1 = scaled(top, .6f);
-    s.cuff2 = scaled(top, .5f);
-    return s;
-}
+
 
 // ----------------------------------------------------------------------------- pintura das faces
 
@@ -153,16 +110,7 @@ void noise(const Canvas& g, const Pal& p, int seed) {
         }
 }
 
-// Roupa dos zumbis: alguns pixels mostram a pele por baixo, outros manchas de sangue.
-void tear(const Canvas& g, const Style& s, int seed) {
-    if (!s.zombie) return;
-    for (int y = 0; y < g.h; ++y)
-        for (int x = 0; x < g.w; ++x) {
-            const double h = noiseHash(x, y, seed + 911);
-            if (h < .07) g.px(x, y, s.skin.c[pick4(noiseHash(x, y, 5))]);
-            else if (h < .1) g.px(x, y, {120, 26, 26});
-        }
-}
+
 
 // Jaqueta com xadrez discreto (blocos 2x2 claros e escuros), como na referência.
 void paintJacket(const Canvas& g, const Style& s, int seed) {
@@ -173,7 +121,6 @@ void paintJacket(const Canvas& g, const Style& s, int seed) {
             if (v > .8) g.rect(x, y, 2, 2, v > .94 ? s.jacketLighter : s.jacketLight);
             else if (v < .1) g.rect(x, y, 2, 2, s.jacketDark);
         }
-    tear(g, s, seed);
 }
 
 void paintPants(const Canvas& g, const Style& s, int seed) {
@@ -184,7 +131,6 @@ void paintPants(const Canvas& g, const Style& s, int seed) {
             if (v > .86) g.rect(x, y, 3, 2, s.pantsLight);
             else if (v < .1) g.rect(x, y, 2, 2, s.pantsDark);
         }
-    tear(g, s, seed);
 }
 
 enum Painter {
@@ -201,10 +147,7 @@ void paintJacketFront(const Canvas& g, const Style& s) {
         g.px(a - 1, y, s.seam);
         g.px(b, y, s.seam);
     }
-    if (s.zombie)
-        for (int y = 0; y < g.h; ++y)
-            for (int x = a; x < b; ++x)
-                if (noiseHash(x, y, 77) < .18) g.px(x, y, {110, 22, 22});
+
 }
 
 void paint(int painter, const Canvas& g, const Style& s) {
@@ -289,11 +232,7 @@ void paint(int painter, const Canvas& g, const Style& s) {
             g.px(7, 11, s.nose);
             g.px(8, 11, s.nose);
             for (int x : {6, 7, 8, 9}) g.px(x, 13, s.mouth);
-            if (s.zombie) {
-                for (int x : {6, 9}) g.px(x, 14, s.mouth);
-                g.px(4, 10, {60, 80, 40});
-                g.px(11, 10, {60, 80, 40});
-            }
+            
             break;
         }
         case HEAD_SIDE: {
@@ -509,7 +448,7 @@ const std::vector<ZzaClip>& mixamoLibrary() {
     std::lock_guard<std::mutex> lock(mutex);
     if (loaded) return clips;
     loaded = true;
-    for (const char* id : {"hero-aim-idle", "die", "zombie-walk", "dance", "swim"}) {
+    for (const char* id : {"hero-aim-idle", "die", "dance", "swim"}) {
         std::vector<uint8_t> bytes;
         ZzaClip clip;
         if (!platform::readAsset(std::string("anims/") + id + ".zza", bytes) || !parseZza(id, bytes, clip)) {
@@ -526,8 +465,7 @@ const std::vector<ZzaClip>& mixamoLibrary() {
 void buildVoxelHumanoid(const Look& look, uint32_t seed, std::vector<ModelNode>& nodes, std::vector<ModelMesh>& meshes, Image& image,
                         HumanoidRig& rig) {
     (void)seed;
-    const bool zombie = look.zombie;
-    const Style style = zombie ? zombieStyle(look) : heroStyle();
+    const Style style = heroStyle();
     const std::vector<JointDef> defs = skeletonDefs();
     std::map<std::string, int> index;
     nodes.clear();
@@ -564,15 +502,14 @@ void buildVoxelHumanoid(const Look& look, uint32_t seed, std::vector<ModelNode>&
     add("Spine2", {0, 22.2f, 0}, {8.2f, 3.6f, 4.2f}, {JACKET, JACKET, JACKET, JACKET, CHEST_FRONT, JACKET});
     add("Spine2", {0, 24.2f, -1.6f}, {5.6f, .7f, 1.2f}, all(JACKET));
     add("Head", {0, 28.3f, 0}, {8, 8, 8}, {HEAD_SIDE, HEAD_SIDE, HAIR, SKIN, FACE, HEAD_BACK});
-    // Mechas de cabelo por cima e dos lados (o herói tem todas; zumbis só algumas, conforme o penteado).
     const float tufts[][6] = {{-3.4f, 32.5f, 3.3f, 1.4f, .8f, 1.6f}, {-1.6f, 32.7f, 3.6f, 1.6f, 1, 1.2f}, {.6f, 32.6f, 3.5f, 1.5f, .9f, 1.4f},
                               {2.6f, 32.5f, 3.2f, 1.6f, .8f, 1.8f}, {-3.9f, 30.6f, 1.2f, .8f, 3.2f, 3.6f}, {3.9f, 30.6f, 1.0f, .8f, 3.0f, 3.8f},
                               {0, 32.6f, 0, 7.6f, .7f, 6.2f}, {-2.2f, 33.0f, -1.2f, 2.4f, .7f, 2.6f}, {1.8f, 33.1f, -.4f, 2.2f, .8f, 2.4f},
                               {0, 30.6f, -3.9f, 7.4f, 3.6f, .8f}, {-3.95f, 29.0f, -2.4f, .8f, 2.6f, 2.6f}, {3.95f, 29.1f, -2.2f, .8f, 2.4f, 2.8f},
                               {-.6f, 31.9f, 4.25f, 2.0f, 1.2f, .7f}, {2.0f, 31.7f, 4.25f, 1.4f, 1.4f, .6f}, {-2.8f, 31.6f, 4.2f, 1.2f, 1.6f, .6f}};
-    const int tuftCount = zombie ? (look.hairStyle == 0 ? 0 : 4) : 15;
+    const int tuftCount = 15;
     for (int i = 0; i < tuftCount; ++i) {
-        const float* t = tufts[zombie ? (i * 3 + 1) % 15 : i];
+        const float* t = tufts[i];
         add("Head", {t[0], t[1], t[2]}, {t[3], t[4], t[5]}, all(HAIR));
     }
     for (const char* sideName : {"Left", "Right"}) {
@@ -580,10 +517,7 @@ void buildVoxelHumanoid(const Look& look, uint32_t seed, std::vector<ModelNode>&
         const float k = s == "Left" ? 1.0f : -1.0f;
         add(s + "Arm", {6.0f * k, 20.75f, 0}, {3.4f, 6.7f, 3.4f}, all(JACKET));
         add(s + "ForeArm", {6.0f * k, 15.25f, 0}, {3.15f, 5.1f, 3.15f}, {SLEEVE_CUFF, SLEEVE_CUFF, JACKET, JACKET, SLEEVE_CUFF, SLEEVE_CUFF});
-        if (zombie) {
-            // Zumbis: mão inteira num bloco só (menos peças para desenhar com muitos na tela).
-            add(s + "Hand", {6.0f * k, 10.9f, 0}, {1.3f, 3.9f, 2.7f}, all(SKIN));
-        } else {
+        
             add(s + "Hand", {6.0f * k, 11.65f, 0}, {1.15f, 2.3f, 2.7f}, all(SKIN));
             for (int f = 0; f < 4; ++f) {
                 float y = 10.5f;
@@ -600,15 +534,13 @@ void buildVoxelHumanoid(const Look& look, uint32_t seed, std::vector<ModelNode>&
                 add(s + "HandThumb" + std::to_string(i), t + kThumbDir * (len * .5f), {.72f, len + .1f, .72f}, all(SKIN), along);
                 t = t + kThumbDir * len;
             }
-        }
+        
         add(s + "UpLeg", {2.0f * k, 9.25f, 0}, {3.95f, 6.1f, 3.95f}, all(PANTS));
         add(s + "Leg", {2.0f * k, 3.85f, 0}, {3.85f, 5.0f, 3.85f}, {PANTS_CUFF, PANTS_CUFF, PANTS, PANTS, PANTS_CUFF, PANTS_CUFF});
-        if (zombie) {
-            add(s + "Foot", {2.0f * k, .75f, .6f}, {4.05f, 1.5f, 5.6f}, {SHOE_SIDE, SHOE_SIDE, SHOE_TOP, SHOE, SHOE_SIDE, SHOE_SIDE});
-        } else {
+        
             add(s + "Foot", {2.0f * k, .75f, -.1f}, {4.05f, 1.5f, 4.3f}, {SHOE_SIDE, SHOE_SIDE, SHOE_TOP, SHOE, SHOE_SIDE, SHOE_SIDE});
             add(s + "ToeBase", {2.0f * k, .65f, 2.85f}, {4.05f, 1.3f, 1.5f}, {SHOE_SIDE, SHOE_SIDE, SHOE, SHOE, SHOE_SIDE, SHOE_SIDE});
-        }
+        
     }
 
     // Atlas: cada face (pintor, largura, altura) pintada uma vez.
@@ -827,10 +759,9 @@ void addHeroClips(const std::vector<ModelNode>& nodes, std::vector<AnimClip>& cl
     }
 }
 
-void addMixamoClips(const std::vector<ModelNode>& nodes, bool zombie, std::vector<AnimClip>& clips) {
+void addMixamoClips(const std::vector<ModelNode>& nodes, std::vector<AnimClip>& clips) {
     // Clipe convertido -> nome usado pelo jogo (cada tipo de personagem recebe os seus).
     static const std::pair<const char*, const char*> kHero[] = {{"hero-aim-idle", "aim-idle"}, {"die", "die"}, {"dance", "dance"}, {"swim", "swim"}};
-    static const std::pair<const char*, const char*> kZombie[] = {{"zombie-walk", "walk"}, {"die", "die"}};
     auto nodeOf = [&](const std::string& name) {
         for (size_t i = 0; i < nodes.size(); ++i)
             if (nodes[i].name == name) return static_cast<int>(i);
@@ -839,11 +770,9 @@ void addMixamoClips(const std::vector<ModelNode>& nodes, bool zombie, std::vecto
     const int hips = nodeOf("Hips");
     for (const ZzaClip& z : mixamoLibrary()) {
         const char* gameName = nullptr;
-        if (zombie) {
-            for (const auto& m : kZombie) if (z.id == m.first) gameName = m.second;
-        } else {
+        
             for (const auto& m : kHero) if (z.id == m.first) gameName = m.second;
-        }
+        
         if (!gameName) continue;
         AnimClip clip;
         clip.name = gameName;

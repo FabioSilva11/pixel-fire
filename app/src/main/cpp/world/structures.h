@@ -1,4 +1,4 @@
-// Estruturas procedurais (árvores, acampamentos, torre, ninho, portal) escritas num "BlockSink":
+// Estruturas procedurais (árvores, acampamentos, torre) escritas num "BlockSink":
 // o mundo finito (lobby), um chunk em geração ou um molde guardado da ilha em streaming.
 #pragma once
 
@@ -20,7 +20,7 @@ public:
 
 enum CampKind {
     K_FIRE = 0, K_RUINS = 1, K_GRAVEYARD = 2, K_DEPOT = 3, K_FARM = 4,
-    K_TOWER = 5, K_OUTPOST = 6, K_NEST = 7, K_PORTAL = 8,
+    K_TOWER = 5, K_OUTPOST = 6,
     // Construções (todas com portas abertas: dá para entrar, nunca são labirintos)
     K_HOUSE = 9, K_VILLAGE = 10, K_CHURCH = 11, K_GAS = 12, K_APARTMENT = 13, K_BARN = 14,
 };
@@ -42,7 +42,6 @@ struct Camp {
     Vec3 center;   // posição dos pés no centro do acampamento
     float radius;
     bool start;
-    bool portal;
     int kind = 0;
 };
 
@@ -60,9 +59,5 @@ TreeKind pickTreeKind(const Theme& theme, int x, int z, uint32_t seed, bool shor
 void buildBuilding(BlockSink& w, const Camp& camp, const Theme& theme, Rng& rng, DecorOut& out);
 void lanternPost(BlockSink& w, int x, int y, int z, DecorOut& out);
 void decorateCamp(BlockSink& w, const Camp& camp, const Theme& theme, Rng& rng, DecorOut& out);
-// Moldura de obsidiana com a abertura voltada para `towards`.
-void buildPortal(BlockSink& w, const Camp& camp, const Vec3& towards, Vec3& base, float& yaw, DecorOut& out);
-// Cratera infectada com pedestal; `core` recebe o ponto onde flutua o núcleo do ninho.
-void buildNest(BlockSink& w, const Camp& camp, Rng& rng, DecorOut& out, Vec3& core);
 
 }  // namespace zz

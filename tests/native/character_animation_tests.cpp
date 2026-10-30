@@ -1,4 +1,5 @@
 #include "render/character.h"
+#include "game/hero_presentation.h"
 #include <cmath>
 #include <cstdio>
 #include <stdexcept>
@@ -52,8 +53,51 @@ static void negativeChannelNode() {
     Pose p; model.bindPose(p); model.sample(0, 0, false, p);
     near(p.t[0].x, 0, "invalid negative channel is ignored");
 }
+static CharacterModel heroFixture() {
+    CharacterModel model;
+    std::vector<AnimClip> clips;
+    for (const char* name : {"idle","walk","walk-back","strafe-left","strafe-right","sprint","run-back","crouch-idle","crouch-walk","crouch-back","jump","swim","aim-idle","die","knife-walk","knife-back","knife-sprint"}) {
+        AnimChannel channel; channel.node=0;channel.times={0,10};channel.values={0,0,0,10,0,0};
+        AnimClip clip;clip.name=name;clip.duration=10;clip.channels={channel};clips.push_back(clip);
+    }
+    model.build({ModelNode{}},{},clips);
+    return model;
+}
+static void originalHeroBehavior() {
+    auto model=heroFixture(); Animator anim;HeroPresentation state;HeroMotion in;
+    in.velocity={4,0,0};in.yaw=0;
+    animateHero(model,anim,state,in,.1f);
+    near(state.yaw,kPi*.5f,"unarmed movement faces direction of travel rather than camera");
+    in.velocity={0,0,-6.525f};in.sprintMode=-1;
+    for(int i=0;i<60;++i)animateHero(model,anim,state,in,1.f/60);
+    if(anim.clip()!=model.clipIndex("walk")||state.armedBlend<.95f)throw std::runtime_error("full-stick walk must stay in walk clip and keep weapon in hands");
+    in.sprintMode=0;
+    in.velocity={0,0,-9};
+    for(int i=0;i<60;++i)animateHero(model,anim,state,in,1.f/60);
+    if(anim.clip()!=model.clipIndex("sprint")||state.armedBlend>.05f)throw std::runtime_error("sprint uses original clip and holsters gun");
+    in.knife=true;
+    for(int i=0;i<60;++i)animateHero(model,anim,state,in,1.f/60);
+    if(anim.clip()!=model.clipIndex("knife-sprint"))throw std::runtime_error("equipped knife keeps original sprint animation");
+    in.knife=false;
+    in.velocity={};in.aim=1;
+    for(int i=0;i<60;++i)animateHero(model,anim,state,in,1.f/60);
+    if(anim.clip()!=model.clipIndex("aim-idle")||state.armedBlend<.95f)throw std::runtime_error("aim idle restores authored Mixamo clip and gun");
+    in.aim=0;in.inWater=true;in.onGround=false;
+    animateHero(model,anim,state,in,.1f);
+    if(anim.clip()!=model.clipIndex("swim"))throw std::runtime_error("swimming keeps authored animation");
+    in.inWater=false;in.onGround=true;in.crouched=true;
+    animateHero(model,anim,state,in,.1f);
+    if(anim.clip()!=model.clipIndex("crouch-idle"))throw std::runtime_error("crouch idle keeps authored animation");
+    in.crouched=false;in.onGround=false;
+    animateHero(model,anim,state,in,.1f);anim.update(20);
+    if(!anim.finished(model))throw std::runtime_error("jump animation must not loop in air");
+    in.alive=false;animateHero(model,anim,state,in,.1f);
+    if(anim.clip()!=model.clipIndex("die"))throw std::runtime_error("elimination plays authored death");
+}
 int main() {
-    try { interruptedFade(); consecutiveSwitches(); negativeChannelNode(); }
+    {auto model=fixture();Pose empty;model.sampleBind(0,1.f,true,empty);near(empty.t.at(0).x,1.f,"lobby sampling initializes fresh pose");
+    if(empty.r.size()!=1||empty.s.size()!=1)throw std::runtime_error("incomplete fresh lobby pose");}
+    try { originalHeroBehavior(); interruptedFade(); consecutiveSwitches(); negativeChannelNode(); }
     catch (const std::exception& e) { std::fprintf(stderr, "FAIL: %s\n", e.what()); return 1; }
     std::puts("Character animation tests passed");
 }

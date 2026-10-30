@@ -1,0 +1,23 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { existsSync } from 'node:fs';
+const path=new URL('../native/build/zzbr.node',import.meta.url);
+test('actual C++ addon owns simulation and rejects invalid player/input', {skip:!existsSync(path)}, () => {
+  const native=createRequire(import.meta.url)(path.pathname);
+  const game=native.create(1,42,0,.1,.1,.1);
+  assert(native.join(game,0,0,0,0));assert(native.join(game,1,1,0,0));
+  const fx=native.effects(game,0);assert(fx instanceof Float32Array);assert.equal(fx.length,2);assert.equal(fx[1],0);
+  assert.throws(()=>native.effects(game,50));
+  assert(!native.join(game,0,1,0,0));
+  const input=new Float32Array([1,0,1,0,0,2,-1,-1,0,0,-1,-1]);
+  assert(native.input(game,0,input));assert(!native.input(game,0,input));
+  assert.throws(()=>native.input(game,0,new Float32Array([NaN])));
+  assert.throws(()=>native.step(game,1));
+  for(let i=0;i<2000;i++)native.step(game,.05);
+  const snapshot=native.snapshot(game,0);
+  assert(snapshot instanceof Float32Array);assert.equal(snapshot[0],1);assert.equal(snapshot[1],3);
+  assert.equal(snapshot[16],2);assert(snapshot.every(Number.isFinite));
+  native.destroy(game);
+  assert.throws(()=>native.step(game,.05));
+});

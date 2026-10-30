@@ -25,6 +25,11 @@ object Header {
 /** O cenário e o personagem continuam desenhados pelo motor 3D. */
 @SuppressLint("ViewConstructor")
 class HomeScreen(private val app: MainActivity) : FrameLayout(app) {
+    private val queueStatus=Ui.text(app,"Conectando…",12f,Palette.text)
+    private var formation=1
+    private var fill=true
+    fun status(text: String){queueStatus.text=text}
+
     init {
         val shade = View(app).apply {
             background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
@@ -43,6 +48,26 @@ class HomeScreen(private val app: MainActivity) : FrameLayout(app) {
         addView(weapons, Ui.frame(app.dpi(150), app.dpi(44), Gravity.BOTTOM or Gravity.START).apply {
             setMargins(app.dpi(20), 0, 0, app.dpi(18))
         })
+        val matchmaking=Ui.column(app)
+        val modes=Ui.row(app)
+        listOf(1 to "SOLO",2 to "DUO",4 to "SQUAD").forEach { (size,label)->
+            modes.addView(Ui.button(app,label,Palette.stone,Color.WHITE,13f){formation=size;app.selectFormation(size,fill);queueStatus.text="${label} selecionado"},Ui.lp(0,app.dpi(38),1f))
+        }
+        matchmaking.addView(modes)
+        val autofill=android.widget.CheckBox(app).apply{text="Completar equipe automaticamente";textSize=12f;setTextColor(Color.WHITE);isChecked=true;setOnCheckedChangeListener{_,checked->fill=checked;app.selectFormation(formation,fill)}}
+        matchmaking.addView(autofill)
+        val friends=Ui.row(app)
+        friends.addView(Ui.button(app,"CRIAR GRUPO",Palette.stone,Color.WHITE,11f){app.group("create")},Ui.lp(0,app.dpi(38),1f))
+        friends.addView(Ui.button(app,"ENTRAR POR CÓDIGO",Palette.stone,Color.WHITE,11f){
+            val input=android.widget.EditText(app).apply{hint="Código do grupo";inputType=android.text.InputType.TYPE_CLASS_TEXT;filters=arrayOf(android.text.InputFilter.LengthFilter(8))}
+            android.app.AlertDialog.Builder(app).setTitle("Entrar no grupo").setView(input).setPositiveButton("ENTRAR"){_,_->app.group("join",input.text.toString())}.setNegativeButton("CANCELAR",null).show()
+        },Ui.lp(0,app.dpi(38),1f))
+        friends.addView(Ui.button(app,"SAIR DO GRUPO",Palette.stone,Color.WHITE,11f){app.group("leave")},Ui.lp(0,app.dpi(38),1f))
+        matchmaking.addView(friends)
+        matchmaking.addView(queueStatus)
+        matchmaking.addView(Ui.button(app,"CANCELAR BUSCA",Palette.stone,Color.WHITE,11f){app.cancelSearch()},Ui.lp(app.dpi(160),app.dpi(32)))
+        val panelWidth=(resources.displayMetrics.widthPixels/resources.displayMetrics.density*.36f).toInt().coerceIn(280,300)
+        addView(matchmaking,Ui.frame(app.dpi(panelWidth),Ui.WRAP,Gravity.BOTTOM or Gravity.END).apply{bottomMargin=app.dpi(76);rightMargin=app.dpi(20)})
         val play = Ui.button(app, "JOGAR", Palette.accent, Palette.dark, 24f) { app.startGame() }
         addView(play, Ui.frame(app.dpi(170), app.dpi(48), Gravity.BOTTOM or Gravity.END).apply {
             setMargins(0, 0, app.dpi(20), app.dpi(16))

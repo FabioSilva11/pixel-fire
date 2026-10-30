@@ -1,0 +1,10 @@
+[Unit]
+Description=Zombie Zone local ingress rules
+Before=zombie-zone.service
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/nft -f /etc/zombie-zone/firewall.nft
+ExecStop=/usr/sbin/nft delete table inet zombie_zone
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

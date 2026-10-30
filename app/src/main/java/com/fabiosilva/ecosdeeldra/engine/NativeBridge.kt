@@ -23,12 +23,17 @@ object NativeBridge {
     external fun surfaceChanged(width: Int, height: Int)
     external fun drawFrame(nanos: Long)
 
+    external fun prepareBattle(localId: Int, look: Int, sequence: Int, resume: Boolean): Boolean
+    external fun applyBattleSnapshot(state: FloatArray)
+    external fun applyBattleEffects(state: FloatArray)
+    external fun pollBattleInput(): FloatArray
+    external fun battleMapHash(): Long
+    external fun battleAction(buttons: Int, target: Int = -1, x: Float = 0f, z: Float = 0f)
+
     external fun enterLobby(look: Int, screen: Int)
+    external fun previewWeapon(id: Int)
     /** [look] = aparência do personagem (Look codificado). */
-    external fun startMission(config: FloatArray, look: Int)
-    /** [looks] = aparência de cada jogador por id. */
     external fun setPaused(paused: Boolean)
-    external fun revive()
     external fun setSettings(sensitivity: Float, aimAssist: Boolean, invertY: Boolean)
     external fun setGraphics(quality: Int)
 
@@ -40,7 +45,6 @@ object NativeBridge {
     external fun setAimStage(stage: Int)
     external fun pressJump()
     external fun pressReload()
-    external fun requestSupply()
     external fun toggleCrouch()
     external fun toggleSprint()
     external fun pressMelee()
@@ -52,24 +56,17 @@ object NativeBridge {
     external fun dropItem(id: Int, count: Int)
     external fun setThrowAim(held: Boolean, cancel: Boolean)
 
-    /** Inventário (thread GL): ver [INV_INT_COUNT]. */
-    external fun setInventory(values: IntArray)
 
     // Saídas
     external fun copyHud(out: FloatArray)
     external fun drainEvents(out: IntArray): Int
-    external fun copyResult(out: FloatArray)
     external fun minimapSize(): Int
     external fun copyMinimap(out: IntArray)
     external fun bigMapSize(): Int
     external fun copyBigMap(out: IntArray)
 
-    /** Diagnóstico (builds debug): bancada headless de streaming, loga na tag ZZPerf. Rode em engine { }. */
-    external fun perfBench(seed: Int, stage: Int, radius: Int, meters: Int, policy: Int, flags: Int): Int
 
 
-    /** Diagnóstico (builds debug): autoteste da reserva de munição dos contratos. 0 = ok; senão linha*1000+falhas. */
-    external fun contractSelfTest(): Int
 
     /**
      * Chamado pelo C++ para decodificar PNGs dos assets com BitmapFactory.

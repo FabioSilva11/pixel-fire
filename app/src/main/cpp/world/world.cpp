@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <stdexcept>
 
 namespace zz {
 
@@ -42,8 +43,12 @@ uint64_t hashChunk(const Chunk& c) {
 }  // namespace
 
 void World::clear() {
-    for (Chunk* c : list_)
+    for (Chunk* c : list_) {
         if (c->gpu.contextId >= 0) gpuGarbage_.push_back(c->gpu);
+        for (auto& gpu : c->lodGpu) if (gpu.contextId >= 0) gpuGarbage_.push_back(gpu);
+    }
+    finiteSource_ = nullptr;
+    preloadGenerated_ = preloadMeshed_ = 0;
     list_.clear();
     grid_.clear();
     unloadCursor_ = 0;
@@ -83,6 +88,61 @@ void World::resetStreaming(int width, int height, int depth, ChunkSource* source
     chunksX_ = (width + kChunkSize - 1) / kChunkSize;
     chunksZ_ = (depth + kChunkSize - 1) / kChunkSize;
     grid_.resize(static_cast<size_t>(chunksX_) * chunksZ_);
+}
+
+void World::beginFinitePreload(int width, int height, int depth, ChunkSource* source) {
+    // Allocate voxel storage only when each source chunk is copied, limiting load peaks.
+    resetStreaming(width, height, depth, nullptr);
+    finiteSource_ = source;
+}
+
+int World::preloadFinite(int maxGenerate, int maxMesh) {
+    if (!finiteSource_) return 0;
+    const size_t count = size_t(chunksX_) * chunksZ_;
+    for (int n=0; n<std::max(0,maxGenerate) && preloadGenerated_<count; ++n) {
+        const size_t i=preloadGenerated_;
+        Chunk* c=chunkAt(int(i%chunksX_),int(i/chunksX_));
+        if (!c) c=createChunk(int(i%chunksX_),int(i/chunksX_));
+        finiteSource_->generate(*c,height_);
+        if (!c->generated || c->blocks.size()!=size_t(256)*height_)
+            throw std::runtime_error("Incomplete finite map chunk");
+        ++preloadGenerated_;
+    }
+    // All collision is resident before meshing: neighbor faces are never missing.
+    if (preloadGenerated_==count) {
+        for (int n=0; n<std::max(0,maxMesh) && preloadMeshed_<count; ++n) {
+            Chunk& c=*grid_[preloadMeshed_];
+            buildChunk(c); c.dirty=false; c.meshed=true; ++c.version; ++preloadMeshed_;
+        }
+    }
+    return int(2*count-preloadGenerated_-preloadMeshed_);
+}
+
+bool World::finitePreloadReady() const {
+    return finiteSource_ && preloadGenerated_==grid_.size() && preloadMeshed_==grid_.size();
+}
+
+float World::finitePreloadProgress() const {
+    return finiteSource_ && !grid_.empty() ? float(preloadGenerated_+preloadMeshed_)/float(2*grid_.size()) : 0.f;
+}
+
+void World::selectVisualLods(const Vec3& camera,float nearDistance,float farDistance,float hysteresis) {
+    hysteresis=std::max(0.f,hysteresis);
+    nearDistance=std::max(hysteresis+1.f,nearDistance);
+    farDistance=std::max(nearDistance+2*hysteresis+64.f,farDistance);
+    // Decide once per 64m group, then apply atomically to every member to avoid holes.
+    for(Chunk* c:list_) if(c->hasLods && c->cx%4==0 && c->cz%4==0) {
+        const Vec3 mid=(c->hlodBounds.min+c->hlodBounds.max)*.5f;
+        const float d=length(mid-camera);
+        c->hlodActive=d>(farDistance+(c->hlodActive?-hysteresis:hysteresis));
+    }
+    for(Chunk* c:list_) if(c->hasLods) {
+        const Chunk* group=chunkAt((c->cx/4)*4,(c->cz/4)*4);
+        if(group && group->hlodActive) {c->visualLod=2;continue;}
+        if(c->detailedLandmark) {c->visualLod=0;continue;}
+        const float d=length((c->bounds.min+c->bounds.max)*.5f-camera);
+        c->visualLod=uint8_t(d>(nearDistance+(c->visualLod==1?-hysteresis:hysteresis))?1:0);
+    }
 }
 
 Chunk* World::createChunk(int cx, int cz) {

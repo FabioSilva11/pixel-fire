@@ -48,10 +48,6 @@ object Palette {
     val danger = Color.parseColor("#FF3D3D")
     /** Linha de painel em destaque (versão forte de [line]). */
     val lineStrong = Color.parseColor("#66A8FF3E")
-    /** Famílias de ninho: horda (laranja), explosivo (amarelo), tóxico (verde-água). */
-    val famHorde = Color.parseColor("#FF8A3D")
-    val famExplosive = Color.parseColor("#FFD23D")
-    val famToxic = Color.parseColor("#4FE3A0")
     /** Cor de cada contrato. */
     val contractSilent = Color.parseColor("#3CE6FF")
     val contractNest = Color.parseColor("#FF8A3D")

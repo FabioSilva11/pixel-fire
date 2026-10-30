@@ -37,6 +37,7 @@ object SaveCodec {
             put("playerName", s.playerName)
             put("hudLayout", s.hudLayout)
             put("hudOpacity", s.hudOpacity.safe(0.85f).toDouble())
+            put("previewWeapon", s.previewWeapon.coerceIn(1,6))
         })
     }.toString()
 
@@ -71,6 +72,7 @@ object SaveCodec {
                 s.playerName = it.optString("playerName", "")
                 s.hudLayout = it.optString("hudLayout", "")
                 s.hudOpacity = it.number("hudOpacity", 0.85f, 0.3f, 1f)
+                s.previewWeapon = it.optInt("previewWeapon",3).coerceIn(1,6)
             }
             DecodeOutcome.Ok(p, found, emptyList())
         }

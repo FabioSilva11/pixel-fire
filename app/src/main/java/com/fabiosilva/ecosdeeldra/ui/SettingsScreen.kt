@@ -29,7 +29,6 @@ class SettingsScreen(private val app: MainActivity, private val fromPause: Boole
 
         left.addView(section("CONTROLES"))
         left.addView(slider("Sensibilidade da câmera", (s.sensitivity * 50).toInt(), 125) { s.sensitivity = (it / 50f).coerceAtLeast(0.3f) })
-        left.addView(toggle("Mira assistida", "Puxa a mira levemente para o zumbi", s.aimAssist) { s.aimAssist = it })
         left.addView(toggle("Inverter eixo vertical", "", s.invertY) { s.invertY = it })
         left.addView(Ui.button(app, "✥ PERSONALIZAR CONTROLES (HUD)", Palette.cyan, Palette.dark, 13f) { app.applySettings(); app.showHudEditor(fromPause) }, Ui.lp(Ui.MATCH, app.dpi(46)).apply { bottomMargin = app.dpi(4) })
         left.addView(Ui.text(app, "Mova, aumente ou esconda cada botão: atirar, mirar, pular, agachar, correr, faca, granada...", 10f, Palette.muted).apply { setPadding(0, 0, 0, app.dpi(8)) })
@@ -49,7 +48,7 @@ class SettingsScreen(private val app: MainActivity, private val fromPause: Boole
             qualityRow.addView(b, Ui.lp(0, app.dpi(42), 1f).apply { marginEnd = if (i < 2) app.dpi(6) else 0 })
         }
         right.addView(qualityRow, Ui.lp(Ui.MATCH, Ui.WRAP).apply { bottomMargin = app.dpi(4) })
-        right.addView(Ui.text(app, "Qualidade muda a resolução e a distância de visão da ilha.", 10f, Palette.muted).apply { setPadding(0, 0, 0, app.dpi(8)) })
+        right.addView(Ui.text(app, "Qualidade muda a resolução e o detalhe das construções distantes.", 10f, Palette.muted).apply { setPadding(0, 0, 0, app.dpi(8)) })
         right.addView(toggle("Mostrar FPS", "", s.showFps) { s.showFps = it })
         right.addView(Ui.text(app, "Personagens, mundo, texturas, sons e músicas gerados para o Zombie Zone.", 10f, Palette.muted).apply { setPadding(0, app.dpi(10), 0, 0) })
 

@@ -218,14 +218,6 @@ std::vector<AnimClip> buildClips(const HumanoidRig& rig) {
         p.r[N_HEAD] = rx(0.35f * k);
         p.rootT = {0, lift, 0};
     }));
-    // Golpe dos zumbis: tronco gira e o braço desce num tapa.
-    clips.push_back(makeClip(rig, "attack-melee-right", 0.6f, [](float t, KeyPose& p) {
-        float k = t / 0.6f;
-        float wind = smoothstepf(0.0f, 0.35f, k), strike = smoothstepf(0.35f, 0.6f, k), back = smoothstepf(0.7f, 1.0f, k);
-        p.r[N_ARM_R] = rz(-0.2f) * rx(lerpf(-2.6f * wind, -0.5f, strike) * (1.0f - back));
-        p.r[N_ARM_L] = rx(-0.4f);
-        p.r[N_TORSO] = ry((-0.35f * wind + 0.6f * strike) * (1.0f - back));
-    }));
     // Gestos do lobby.
     clips.push_back(makeClip(rig, "emote-yes", 1.2f, [](float t, KeyPose& p) {
         float env = std::sin(std::min(1.0f, t / 1.2f) * kPi);
@@ -286,7 +278,6 @@ Look Look::decode(uint32_t c) {
     l.shoes = static_cast<int>((c >> 23) & 3u);
     l.hat = static_cast<int>((c >> 25) & 7u);
     l.shorts = ((c >> 28) & 1u) != 0;
-    l.zombie = (c & kLookZombieBit) != 0;
     return l;
 }
 
@@ -295,26 +286,10 @@ uint32_t Look::encode() const {
                  (static_cast<uint32_t>(eyes & 3) << 9) | (static_cast<uint32_t>(face & 3) << 11) | (static_cast<uint32_t>(top & 7) << 13) |
                  (static_cast<uint32_t>(topColor & 15) << 16) | (static_cast<uint32_t>(pantsColor & 7) << 20) |
                  (static_cast<uint32_t>(shoes & 3) << 23) | (static_cast<uint32_t>(hat & 7) << 25) | (shorts ? 1u << 28 : 0u);
-    return zombie ? (c | kLookZombieBit) : c;
+    return c;
 }
 
-uint32_t zombieLook(int variant, uint32_t seed) {
-    Rng rng(hash2(variant, 77, seed));
-    Look z;
-    z.zombie = true;
-    z.skin = variant & 7;
-    static const int styles[] = {0, 1, 1, 2, 4, 6};
-    z.hairStyle = styles[rng.rangeInt(0, 5)];
-    z.hairColor = rng.chance(0.5f) ? 0 : rng.rangeInt(1, 4);
-    static const int tops[] = {0, 0, 1, 2, 3, 4, 7};
-    z.top = tops[rng.rangeInt(0, 6)];
-    z.topColor = rng.rangeInt(0, 14);
-    z.pantsColor = rng.rangeInt(0, 6);
-    z.shoes = rng.rangeInt(0, 3);
-    z.shorts = rng.chance(0.15f);
-    z.face = rng.chance(0.2f) ? 1 : 0;
-    return z.encode();
-}
+
 
 void buildBlockyCharacter(uint32_t code, CharacterAsset& out) {
     const Look l = Look::decode(code);
@@ -323,8 +298,8 @@ void buildBlockyCharacter(uint32_t code, CharacterAsset& out) {
     HumanoidRig rig;
     buildVoxelHumanoid(l, code, nodes, meshes, out.image, rig);
     std::vector<AnimClip> clips = buildClips(rig);
-    if (!l.zombie) addHeroClips(nodes, clips);
-    addMixamoClips(nodes, l.zombie, clips);
+    addHeroClips(nodes, clips);
+    addMixamoClips(nodes, clips);
     out.model.build(std::move(nodes), std::move(meshes), std::move(clips), 32.0f * kBlockyPixel);
     addHumanoidAliases(out.model);
     out.pixelArt = true;

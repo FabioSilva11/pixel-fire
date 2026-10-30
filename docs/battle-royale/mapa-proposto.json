@@ -1,0 +1,531 @@
+{
+  "status": "proposta para revisão, não usado pelo jogo ainda",
+  "units": "metros; 1 unidade de jogo = 1 metro",
+  "size": [
+    1440,
+    1440
+  ],
+  "height": 128,
+  "regions": [
+    {
+      "id": 1,
+      "name": "Vila Rubra",
+      "labelX": 220,
+      "labelZ": 220,
+      "buildings": [
+        {
+          "id": "r01-b01",
+          "archetype": "casa",
+          "x": 182,
+          "z": 196,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r01-b02",
+          "archetype": "comercio",
+          "x": 251,
+          "z": 190,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r01-b03",
+          "archetype": "sobrado",
+          "x": 196,
+          "z": 254,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r01-b04",
+          "archetype": "oficina",
+          "x": 262,
+          "z": 259,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Templo da Areia",
+      "labelX": 690,
+      "labelZ": 190,
+      "buildings": [
+        {
+          "id": "r02-b01",
+          "archetype": "templo",
+          "x": 652,
+          "z": 166,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r02-b02",
+          "archetype": "obelisco",
+          "x": 721,
+          "z": 160,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r02-b03",
+          "archetype": "patio-monumental",
+          "x": 666,
+          "z": 224,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r02-b04",
+          "archetype": "galeria",
+          "x": 732,
+          "z": 229,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Mirante Escarlate",
+      "labelX": 1160,
+      "labelZ": 220,
+      "buildings": [
+        {
+          "id": "r03-b01",
+          "archetype": "torre",
+          "x": 1122,
+          "z": 196,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r03-b02",
+          "archetype": "plataforma",
+          "x": 1191,
+          "z": 190,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r03-b03",
+          "archetype": "posto-observacao",
+          "x": 1136,
+          "z": 254,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r03-b04",
+          "archetype": "passarela",
+          "x": 1202,
+          "z": 259,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Pedras Antigas",
+      "labelX": 430,
+      "labelZ": 410,
+      "buildings": [
+        {
+          "id": "r04-b01",
+          "archetype": "ruina-arcos",
+          "x": 392,
+          "z": 386,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r04-b02",
+          "archetype": "ruina-sala",
+          "x": 461,
+          "z": 380,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r04-b03",
+          "archetype": "colunata",
+          "x": 406,
+          "z": 444,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r04-b04",
+          "archetype": "patio-pedra",
+          "x": 472,
+          "z": 449,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Pátio Central",
+      "labelX": 720,
+      "labelZ": 720,
+      "buildings": [
+        {
+          "id": "r05-b01",
+          "archetype": "predio",
+          "x": 682,
+          "z": 696,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r05-b02",
+          "archetype": "oficina",
+          "x": 751,
+          "z": 690,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r05-b03",
+          "archetype": "galpao",
+          "x": 696,
+          "z": 754,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r05-b04",
+          "archetype": "escritorio",
+          "x": 762,
+          "z": 759,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Fortaleza Seca",
+      "labelX": 1190,
+      "labelZ": 650,
+      "buildings": [
+        {
+          "id": "r06-b01",
+          "archetype": "portao-forte",
+          "x": 1152,
+          "z": 626,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r06-b02",
+          "archetype": "quartel",
+          "x": 1221,
+          "z": 620,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r06-b03",
+          "archetype": "bastiao",
+          "x": 1166,
+          "z": 684,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r06-b04",
+          "archetype": "deposito",
+          "x": 1232,
+          "z": 689,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Beco de Poeira",
+      "labelX": 220,
+      "labelZ": 700,
+      "buildings": [
+        {
+          "id": "r07-b01",
+          "archetype": "casa-estreita",
+          "x": 182,
+          "z": 676,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r07-b02",
+          "archetype": "comercio-becco",
+          "x": 251,
+          "z": 670,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r07-b03",
+          "archetype": "sobrado",
+          "x": 196,
+          "z": 734,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r07-b04",
+          "archetype": "patio-murado",
+          "x": 262,
+          "z": 739,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Usina de Ferro",
+      "labelX": 960,
+      "labelZ": 440,
+      "buildings": [
+        {
+          "id": "r08-b01",
+          "archetype": "nave-industrial",
+          "x": 922,
+          "z": 416,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r08-b02",
+          "archetype": "torre-industrial",
+          "x": 991,
+          "z": 410,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r08-b03",
+          "archetype": "oficina-metal",
+          "x": 936,
+          "z": 474,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r08-b04",
+          "archetype": "tanques",
+          "x": 1002,
+          "z": 479,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Cais do Sol",
+      "labelX": 180,
+      "labelZ": 1190,
+      "buildings": [
+        {
+          "id": "r09-b01",
+          "archetype": "armazem",
+          "x": 142,
+          "z": 1166,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r09-b02",
+          "archetype": "doca",
+          "x": 211,
+          "z": 1160,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r09-b03",
+          "archetype": "deposito-cais",
+          "x": 156,
+          "z": 1224,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r09-b04",
+          "archetype": "posto-portuario",
+          "x": 222,
+          "z": 1229,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Base Eclipse",
+      "labelX": 1160,
+      "labelZ": 1160,
+      "buildings": [
+        {
+          "id": "r10-b01",
+          "archetype": "quartel",
+          "x": 1122,
+          "z": 1136,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r10-b02",
+          "archetype": "hangar",
+          "x": 1191,
+          "z": 1130,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r10-b03",
+          "archetype": "posto-comando",
+          "x": 1136,
+          "z": 1194,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r10-b04",
+          "archetype": "deposito-militar",
+          "x": 1202,
+          "z": 1199,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Vale dos Ossos",
+      "labelX": 470,
+      "labelZ": 1020,
+      "buildings": [
+        {
+          "id": "r11-b01",
+          "archetype": "fosseis",
+          "x": 432,
+          "z": 996,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r11-b02",
+          "archetype": "entrada-caverna",
+          "x": 501,
+          "z": 990,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r11-b03",
+          "archetype": "abrigo-rocha",
+          "x": 446,
+          "z": 1054,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r11-b04",
+          "archetype": "galeria-subterranea",
+          "x": 512,
+          "z": 1059,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Casco Perdido",
+      "labelX": 740,
+      "labelZ": 1240,
+      "buildings": [
+        {
+          "id": "r12-b01",
+          "archetype": "casco-abandonado",
+          "x": 702,
+          "z": 1216,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r12-b02",
+          "archetype": "cabine",
+          "x": 771,
+          "z": 1210,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r12-b03",
+          "archetype": "compartimento",
+          "x": 716,
+          "z": 1274,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r12-b04",
+          "archetype": "passarela-casco",
+          "x": 782,
+          "z": 1279,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Rocha do Tesouro",
+      "labelX": 950,
+      "labelZ": 940,
+      "buildings": [
+        {
+          "id": "r13-b01",
+          "archetype": "entrada-caverna",
+          "x": 912,
+          "z": 916,
+          "yawDegrees": 0,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r13-b02",
+          "archetype": "deposito-rocha",
+          "x": 981,
+          "z": 910,
+          "yawDegrees": 90,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r13-b03",
+          "archetype": "galeria-mineral",
+          "x": 926,
+          "z": 974,
+          "yawDegrees": 180,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        },
+        {
+          "id": "r13-b04",
+          "archetype": "patio-pedra",
+          "x": 992,
+          "z": 979,
+          "yawDegrees": 270,
+          "y": "fixado pelo bake e gravado no pacote canônico"
+        }
+      ]
+    }
+  ]
+}

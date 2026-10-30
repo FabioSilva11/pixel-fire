@@ -473,6 +473,9 @@ struct ItemSpec {
 
 ItemSpec spec(VoxelItem item) {
     switch (item) {
+        case VoxelItem::Pistol:return {.13f,{0,0,0},kGunPlace,{2.2f,.7f,0},{1.9f,1.1f,0},{-.3f,-.4f,0},{.4f,-.3f,0},{-1.1f,.4f,0}};
+        case VoxelItem::Smg:return {.13f,{0,0,0},kGunPlace,{3.5f,.7f,0},{2.9f,1.2f,0},{-.8f,-.3f,0},{1.4f,.1f,0},{-2.7f,.5f,0}};
+        case VoxelItem::Sniper:return {.13f,{0,0,0},kGunPlace,{6.8f,.6f,0},{.7f,1.8f,0},{-1.0f,-.3f,0},{2.1f,.1f,0},{-4.3f,.5f,0}};
         case VoxelItem::Rifle: return {kGunScale, kAkAnchor, kGunPlace, {4.69f, .74f, 0}, {3.90f, 1.50f, 0}, {-1.27f, -.12f, 0}, {1.55f, .40f, 0}, {-4.3f, .62f, 0}};
         case VoxelItem::Shotgun: return {kGunScale, kShotgunAnchor, kGunPlace, {5.20f, .92f, 0}, {4.98f, 1.12f, 0}, {-1.40f, -.05f, 0}, {1.9f, .30f, 0}, {-4.7f, .55f, 0}};
         case VoxelItem::Knife: return {0.13f, kKnifeAnchor, {0.0f, 0.0f, 0.08f}, {3.30f, 0, 0}, {3.30f, 0, 0}, {-.95f, 0, 0}, {-.95f, 0, 0}, {-1.8f, 0, 0}};
@@ -492,6 +495,25 @@ void buildVoxelItem(VoxelItem item, CharacterAsset& out) {
     const ItemSpec s = spec(item);
     VoxelBuilder b{ModelMesh{}, s.scale, s.anchor, s.place};
     switch (item) {
+        case VoxelItem::Pistol:
+            b.cube({.4f,.7f,0},{3.6f,.65f,.65f},METAL_DARK);
+            b.cube({-.4f,-.2f,0},{.8f,1.6f,.6f},RUBBER,-.15f);
+            b.cube({.8f,-.1f,0},{1.3f,.15f,.25f},METAL);
+            b.cube({1.9f,1.1f,0},{.2f,.2f,.25f},METAL_LIGHT);break;
+        case VoxelItem::Smg:
+            b.cube({.3f,.6f,0},{4.1f,.8f,.7f},METAL_DARK);
+            b.cube({2.8f,.7f,0},{1.4f,.35f,.35f},BLACK);
+            b.cube({-2.1f,.5f,0},{1.4f,.4f,.4f},METAL);
+            b.cube({-.8f,-.3f,0},{.6f,1.3f,.6f},RUBBER);
+            b.cube({.7f,-.6f,0},{.5f,2,.5f},METAL);
+            b.cube({2.9f,1.2f,0},{.2f,.3f,.2f},METAL_LIGHT);break;
+        case VoxelItem::Sniper:
+            b.cube({1.7f,.6f,0},{5.6f,.7f,.6f},METAL_DARK);
+            b.cube({5.2f,.6f,0},{3.2f,.3f,.3f},BLACK);
+            b.cube({-2.5f,.4f,0},{3.6f,1,.7f},RUBBER);
+            b.cube({-1,-.3f,0},{.7f,1.4f,.6f},RUBBER);
+            b.cube({.7f,1.7f,0},{2.7f,.5f,.6f},METAL);
+            b.cube({.4f,-.4f,0},{.8f,1,.5f},BLACK);break;
         case VoxelItem::Rifle: buildAk(b); break;
         case VoxelItem::Shotgun: buildShotgun(b); break;
         case VoxelItem::Grenade: buildGrenade(b); break;

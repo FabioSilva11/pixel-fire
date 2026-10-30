@@ -1,4 +1,4 @@
-// Portado do Horizonte; fórmulas originais preservadas.
+// Grounded Horizonte terrain: caves, vegetation and villages; no airborne land masses.
 #include "terrain_grid.h"
 namespace zz::horizonte {
 using namespace terrain_internal;
@@ -27,22 +27,7 @@ std::vector<uint16_t> Terrain::chunk(int cx, int cz) const {
         }
         set(x, y, z, t);
       }
-      int cellX = fd(x, 128), cellZ = fd(z, 128);
-      uint64_t is = uint64_t(seed_) + 1919;
-      int ix = cellX * 128 + 32 + int(noise(is, cellX * 3.1, cellZ * 3.1) * 64),
-          iz = cellZ * 128 + 32 +
-               int(noise(is, cellX * 3.1 + 18, cellZ * 3.1) * 64),
-          radius = 15 + int(noise(is, cellX * 3.1, cellZ * 3.1 + 19) * 12);
-      double distance = std::hypot(x - ix, z - iz) / radius;
-      if (distance < 1) {
-        int cap = 61 + int(noise(is, cellX * 3.1 + 31, cellZ * 3.1 + 31) * 22),
-            bottom = cap - int((1 - distance * .65) * radius);
-        for (int y = bottom; y <= cap; y++)
-          set(x, y, z,
-              y == cap      ? (b == 2 ? SNOW : GRASS)
-              : y > cap - 3 ? DIRT
-                            : STONE);
-      }
+
     }
   for (int ax = fd(cx * 16 - 3, 8) * 8; ax < cx * 16 + 19; ax += 8)
     for (int az = fd(cz * 16 - 3, 8) * 8; az < cz * 16 + 19; az += 8) {

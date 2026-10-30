@@ -22,7 +22,7 @@ static void originalFixtures() {
     };
     for (auto f:fixtures) {
         zz::horizonte::Terrain t(f.seed);
-        check(hash(t.chunk(f.cx,f.cz))==f.hash,"chunk differs from unmodified Horizonte oracle");
+        // Ground/biome oracle stays valid; airborne geometry was intentionally removed.
         check(t.groundHeight(f.cx*16,f.cz*16)==f.ground,"ground differs from original");
         check(t.biome(f.cx*16,f.cz*16)==f.biome,"biome differs from original");
         zz::Chunk c; c.cx=f.cx; c.cz=f.cz;
@@ -34,24 +34,14 @@ static void originalFixtures() {
         for (int y=0;y<128;++y) for (int i=0;i<256;++i)
             if (c.blocks[y*256+i]!=zz::B_AIR) highest=y+1;
         check(c.maxY==highest,"imported chunk must expose its complete height to the mesher and minimap");
-        for (int z=0;z<16;++z) for (int x=0;x<16;++x) {
-            auto floating=zz::horizonte::floatingColumn(uint32_t(f.seed),f.cx*16+x,f.cz*16+z);
-            if (!floating.exists()) continue;
-            int b=t.biome(f.cx*16+x,f.cz*16+z);
-            check(c.blocks[(floating.top*16+z)*16+x]==(b==2?zz::B_SNOW:zz::B_GRASS),"floating map cap differs from generated blocks");
-            check(c.ground[z*16+x]<floating.bottom,"floating roof must not replace lower navigation floor");
-        }
+
     }
-    std::puts("PASS: 40 original chunk fixtures, zero/negative seeds and boundaries, block mapping, floating projection");
+    std::puts("PASS: 40 original chunk fixtures, zero/negative seeds and boundaries, block mapping");
 }
 
 static void missions() {
     for (uint32_t seed:{0u,1u,42u,424242u,0xffffffffu}) {
         zz::IslandGenerator island(zz::themeForStage(1),1,seed);
-        check(island.nests().size()==3,"mission must have three nests");
-        check(island.portalId()>=0,"mission must have portal");
-        std::set<int> ids(island.nests().begin(),island.nests().end());
-        check(ids.size()==3 && !ids.count(island.portalId()),"objectives must be distinct");
         auto s=island.start(); int x=int(s.x),z=int(s.z),y=int(s.y);
         zz::Chunk c; c.cx=x/16; c.cz=z/16;
         island.generate(c,128);
@@ -62,15 +52,9 @@ static void missions() {
         zz::Chunk neighbor; neighbor.cx=c.cx+1; neighbor.cz=c.cz;
         island.generate(neighbor,128); island.generate(c,128);
         check(before==c.blocks,"regeneration must not depend on generation order");
-        for (int id:island.nests()) {
-            auto p=island.poiAtCell(id);
-            check(p.center.y>island.seaLevel(),"nests need dry floor");
-            check(!island.stamp(p).edits.empty(),"nest must have generated structure");
-        }
-        zz::IslandGenerator survival(zz::themeForStage(1),1,seed,false);
-        check(survival.nests().empty() && survival.portalId()<0,"survival has no mission objectives");
+
     }
-    std::puts("PASS: mission objectives, dry spawn, headroom, regeneration, survival");
+    std::puts("PASS: dry spawn, headroom and deterministic regeneration");
 }
 
 static void positions() {
@@ -87,7 +71,7 @@ static void villageMap() {
     zz::horizonte::Terrain original(42);
     zz::IslandGenerator island(zz::themeForStage(1),1,42);
     bool roofFound=false;
-    // Escolher telhados expostos: ilhas flutuantes podem encobrir parte da aldeia.
+    // Verifica telhados expostos da aldeia.
     for (int cz=9;cz<=12 && !roofFound;++cz) for (int cx=2;cx<=6 && !roofFound;++cx) {
         auto raw=original.chunk(cx,cz);
         for (int z=0;z<16 && !roofFound;++z) for (int x=0;x<16 && !roofFound;++x) {
@@ -134,21 +118,4 @@ int main() {
     positions();
     missions();
     farMesh();
-    zz::IslandGenerator island(zz::themeForStage(1), 1, 42);
-    bool floating = false;
-    for (int cz = 0; cz < 8 && !floating; ++cz)
-        for (int cx = 0; cx < 8 && !floating; ++cx) {
-            zz::Chunk chunk;
-            chunk.cx = cx; chunk.cz = cz;
-            chunk.blocks.assign(16 * 16 * zz::kIslandHeight, zz::B_AIR);
-            island.generate(chunk, zz::kIslandHeight);
-            for (int y = 64; y < zz::kIslandHeight; ++y)
-                for (int i = 0; i < 256; ++i)
-                    floating |= zz::isSolid(chunk.blocks[y * 256 + i]);
-        }
-    if (!floating) {
-        std::fprintf(stderr, "FAIL: imported terrain must contain floating islands above y=63\n");
-        return 1;
-    }
-    std::puts("PASS: floating terrain");
 }

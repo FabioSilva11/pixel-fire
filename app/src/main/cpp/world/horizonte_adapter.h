@@ -6,11 +6,6 @@ namespace zz::horizonte {
 constexpr int kHeight = 128;
 constexpr int kSea = 16;
 
-struct FloatingColumn {
-    int bottom = 0, top = -1;
-    bool exists() const { return top >= bottom; }
-};
-FloatingColumn floatingColumn(uint32_t seed, int x, int z);
 double riverDistance(uint32_t seed, int x, int z);
 bool clearFootprint(const Terrain& terrain, uint32_t seed, int x, int z, float radius);
 void generate(const Terrain& terrain, Chunk& chunk, int height);

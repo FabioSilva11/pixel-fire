@@ -21,6 +21,8 @@ private const val EGL_OPENGL_ES3_BIT = 0x40
 class GameSurfaceView(
     context: Context,
     private val onEvents: (IntArray, Int) -> Unit,
+    private val onInput: (FloatArray) -> Unit = {},
+    private val onFrame: () -> Unit = {},
 ) : GLSurfaceView(context), Choreographer.FrameCallback {
 
     private val events = IntArray(4096)
@@ -59,7 +61,12 @@ class GameSurfaceView(
             }
 
             override fun onDrawFrame(gl: GL10?) {
+                onFrame()
                 NativeBridge.drawFrame(System.nanoTime())
+                repeat(4) {
+                    val command=NativeBridge.pollBattleInput()
+                    if(command.isNotEmpty())onInput(command)
+                }
                 val n = NativeBridge.drainEvents(events)
                 if (n > 0) onEvents(events, n)
             }

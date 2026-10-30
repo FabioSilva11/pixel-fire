@@ -1,0 +1,8 @@
+[Unit]
+Description=Back up Zombie Zone persistent match results
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/zombie-zone/backup.sh
+Nice=19
+NoNewPrivileges=true
+PrivateTmp=true

@@ -21,7 +21,6 @@ class GameAudio(private val context: Context) {
         .build()
     private val pool = SoundPool.Builder().setMaxStreams(16).setAudioAttributes(attributes).build()
     private val engineSounds = IntArray(Snd.COUNT)
-    private val groanAlt: Int
     private val lastPlayed = LongArray(Snd.COUNT)
     private val ui = mutableMapOf<String, Int>()
 
@@ -43,30 +42,20 @@ class GameAudio(private val context: Context) {
         engineSounds[Snd.RELOAD] = load(R.raw.sfx_reload)
         engineSounds[Snd.HIT] = load(R.raw.sfx_hit)
         engineSounds[Snd.HEADSHOT] = load(R.raw.sfx_headshot)
-        engineSounds[Snd.GROAN] = load(R.raw.sfx_groan1)
-        engineSounds[Snd.ZOMBIE_DIE] = load(R.raw.sfx_zombie_die)
         engineSounds[Snd.HURT] = load(R.raw.sfx_hurt)
         engineSounds[Snd.PICKUP] = load(R.raw.sfx_pickup)
-        engineSounds[Snd.PORTAL] = load(R.raw.sfx_portal)
         engineSounds[Snd.JUMP] = load(R.raw.sfx_jump)
         engineSounds[Snd.STEP] = load(R.raw.sfx_step)
         engineSounds[Snd.EMPTY] = load(R.raw.sfx_empty)
         engineSounds[Snd.SPLASH] = load(R.raw.sfx_splash)
-        engineSounds[Snd.ZOMBIE_ATTACK] = load(R.raw.sfx_zombie_attack)
         engineSounds[Snd.HEAL] = load(R.raw.sfx_heal)
         engineSounds[Snd.THROW] = load(R.raw.sfx_throw)
         engineSounds[Snd.FIRE] = load(R.raw.sfx_fire)
         engineSounds[Snd.EXPLOSION] = load(R.raw.sfx_explosion)
         engineSounds[Snd.KNIFE] = load(R.raw.sfx_knife)
-        engineSounds[Snd.SCREAM] = load(R.raw.sfx_scream)
-        engineSounds[Snd.ROCK] = load(R.raw.sfx_rock)
-        engineSounds[Snd.CHEST] = load(R.raw.sfx_chest)
-        engineSounds[Snd.SPIT] = load(R.raw.sfx_spit)
         engineSounds[Snd.RACK] = load(R.raw.sfx_rack)
         engineSounds[Snd.SHOTGUN] = load(R.raw.sfx_shotgun)
         engineSounds[Snd.EQUIP] = load(R.raw.sfx_equip)
-        engineSounds[Snd.WAVE] = load(R.raw.sfx_wave)
-        groanAlt = load(R.raw.sfx_groan2)
         ui["click"] = load(R.raw.ui_click)
         ui["reward"] = load(R.raw.sfx_reward)
         ui["victory"] = load(R.raw.sfx_victory)
@@ -79,7 +68,7 @@ class GameAudio(private val context: Context) {
         if (sound !in engineSounds.indices || sfxVolume <= 0f) return
         val now = SystemClock.uptimeMillis()
         // Evita empilhar o mesmo som no mesmo instante (ex.: rajada + vários impactos).
-        val minGap = when (sound) { Snd.SHOT -> 45L; Snd.WAVE -> 1500L; Snd.STEP -> 120L; Snd.GROAN -> 350L; Snd.EXPLOSION -> 90L; Snd.FIRE -> 120L; Snd.RELOAD, Snd.RACK -> 250L; Snd.EMPTY -> 200L; else -> 30L }
+        val minGap = when (sound) { Snd.SHOT -> 45L; Snd.STEP -> 120L; Snd.EXPLOSION -> 90L; Snd.FIRE -> 120L; Snd.RELOAD, Snd.RACK -> 250L; Snd.EMPTY -> 200L; else -> 30L }
         if (now - lastPlayed[sound] < minGap) return
         lastPlayed[sound] = now
         val v = (volume / 100f).coerceIn(0f, 1f) * sfxVolume
@@ -87,16 +76,14 @@ class GameAudio(private val context: Context) {
         val left = v * (1f - p.coerceAtLeast(0f))
         val right = v * (1f + p.coerceAtMost(0f))
         var id = engineSounds[sound]
-        if (sound == Snd.GROAN && (now and 1L) == 0L) id = groanAlt
         val rate = when (sound) {
-            Snd.GROAN, Snd.ZOMBIE_DIE -> 0.85f + (now % 7) * 0.05f
-            Snd.HIT, Snd.STEP, Snd.ROCK -> 0.9f + (now % 5) * 0.05f
-            Snd.SCREAM, Snd.THROW -> 0.92f + (now % 4) * 0.05f
+            Snd.HIT, Snd.STEP -> 0.9f + (now % 5) * 0.05f
+            Snd.THROW -> 0.92f + (now % 4) * 0.05f
             // Os SoundDef de tiro do template variam um pouco o tom a cada disparo.
             Snd.SHOT, Snd.SHOTGUN -> 0.95f + (now % 5) * 0.025f
             else -> 1f
         }
-        val priority = if (sound == Snd.SHOT || sound == Snd.HURT || sound == Snd.EXPLOSION || sound == Snd.WAVE || sound == Snd.SHOTGUN) 2 else 1
+        val priority = if (sound == Snd.SHOT || sound == Snd.HURT || sound == Snd.EXPLOSION || sound == Snd.SHOTGUN) 2 else 1
         pool.play(id, left, right, priority, 0, rate)
     }
 

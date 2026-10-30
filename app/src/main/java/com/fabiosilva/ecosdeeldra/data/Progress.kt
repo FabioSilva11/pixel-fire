@@ -13,6 +13,7 @@ class Settings {
     var playerName = ""
     var hudLayout = ""
     var hudOpacity = 0.85f
+    var previewWeapon = 3
 }
 
 /** Estado persistente do equipamento e controles. */
