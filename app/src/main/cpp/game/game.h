@@ -142,7 +142,7 @@ class Game {
     CharacterAsset *character(uint32_t);
     void addCharacter(CharacterAsset *, const Vec3 &, float, float, const Pose &,
                       const Vec3 &tint = Vec3(1, 1, 1), float = 0, const Vec3 &scale = Vec3(1, 1, 1),
-                      float = 0);
+                      float roll = 0, float pitch = 0);
     void poseCrouch(Pose &, const CharacterModel &, float, float);
     void poseAir(Pose &, const CharacterModel &, float, bool);
     void poseArmedBlend(Pose &, const CharacterModel &, float, bool, float, float, int);

@@ -938,19 +938,31 @@ void Game::updateCamera(float dt, InputState &in) {
     sprintFov_ = lerpf(sprintFov_, sprinting_ ? .07f : 0.f, damp(4, dt));
     fov_ = lerpf(1, aimFov, aimBlend_) + sprintFov_;
     const bool aboard = battle_ && !snapshot_.empty() && self_[11] == br::IN_PLANE;
+    const bool inFlight = battle_ && !snapshot_.empty() && self_[11] != br::LANDED && !aboard;
+    const bool inFreefall = inFlight && self_[11] == br::FREEFALL;
+    const bool inChute = inFlight && self_[11] == br::CHUTE;
+
     const float horizontal = lengthXZ(visualPlayer_.velocity);
     if (visualPlayer_.onGround && horizontal > .5f && !dead_)
         bobPhase_ += dt * horizontal * 1.7f;
     float bob = std::sin(bobPhase_ * 2) * (sprinting_ ? .045f : .02f) * clampf(horizontal / 4, 0, 1) *
                 (1 - aimBlend_);
     Vec3 renderPos = visualPlayerPos();
-    Vec3 target = renderPos + Vec3(0, lerpf(1.72f, 1.2f, crouchBlend_) + bob, 0);
+    float pivotHeight = 1.72f;
+    if (inFreefall)
+        pivotHeight = 1.15f;
+    else if (inChute)
+        pivotHeight = 2.40f;
+    else
+        pivotHeight = lerpf(1.72f, 1.2f, crouchBlend_) + bob;
+
+    Vec3 target = renderPos + Vec3(0, pivotHeight, 0);
     if (aboard) {
         target = (planePosInit_ ? visualPlanePos_ : player_.position) + Vec3(0, 6, 0);
         camPivot_ = target;
         camPivotInit_ = true;
     } else {
-        if (!camPivotInit_ || length(target - camPivot_) > 4) {
+        if (!camPivotInit_ || length(target - camPivot_) > 6) {
             camPivot_ = target;
             camPivotInit_ = true;
         }
@@ -959,7 +971,7 @@ void Game::updateCamera(float dt, InputState &in) {
         camPivot_.y = lerpf(camPivot_.y, target.y, damp(13, dt));
     }
     Vec3 right = rightFromYaw(camYaw_) * (shoulderBlend_ >= 0 ? 1.f : -1.f);
-    float side = (battle_ && !aboard) ? lerpf(1, .78f, aimBlend_) * std::abs(shoulderBlend_) : 0;
+    float side = (battle_ && !aboard && !inFlight) ? lerpf(1, .78f, aimBlend_) * std::abs(shoulderBlend_) : 0;
     RayHit hit;
     if (!loading_ && world_.raycast(camPivot_, right, side + .25f, hit))
         side = std::max(0.f, hit.distance - .25f);
@@ -968,7 +980,11 @@ void Game::updateCamera(float dt, InputState &in) {
     float yaw = camYaw_ + std::sin(time_ * 47.f) * shakeAmp * .6f;
     float pitch = clampf(camPitch_ + recoil_ + std::sin(time_ * 39.f + 1.3f) * shakeAmp * .5f, -1.2f, 1.1f);
     camForward_ = direction(yaw, pitch);
-    float want = aboard ? 25.f : (dead_ ? 5.5f : lerpf(lerpf(4.9f, 4.3f, crouchBlend_), 2.4f, aimBlend_));
+    float want = aboard ? 25.f
+                        : (dead_ ? 5.5f
+                                 : (inChute ? 8.2f
+                                            : (inFreefall ? 6.2f
+                                                          : lerpf(lerpf(4.9f, 4.3f, crouchBlend_), 2.4f, aimBlend_))));
     if (!loading_ && world_.raycast(pivot, -camForward_, want + .3f, hit))
         want = std::max(.3f, hit.distance - .3f);
     camDistance_ = want < camDistance_ ? want : lerpf(camDistance_, want, damp(5, dt));
@@ -1109,7 +1125,14 @@ void Game::buildScene() {
         poseActor(a, local, pose);
         pos.y -= .12f * a.presentation.crouchBlend;
         float flash = a.hitFlash > 0 ? .55f : 0.f;
-        addCharacter(asset, pos, a.presentation.yaw, 1, pose, {1, 1, 1}, flash, {1, 1, 1}, a.presentation.lean);
+        float actorPitch = a.presentation.freefallPitch;
+        if (int(a.state[11]) == br::FREEFALL) {
+            actorPitch += std::cos(a.presentation.flightTime * 12.f) * 0.025f;
+        } else if (int(a.state[11]) == br::CHUTE) {
+            actorPitch += std::sin(a.presentation.flightTime * 2.2f) * 0.025f;
+        }
+        addCharacter(asset, pos, a.presentation.yaw, 1, pose, {1, 1, 1}, flash, {1, 1, 1}, a.presentation.lean,
+                     actorPitch);
         scene_.shadows.push_back({pos, .55f, .32f});
         int gun = int(a.state[12]);
         bool alive = (int(a.state[3]) & 1) != 0;
@@ -1148,7 +1171,24 @@ void Game::buildScene() {
         } else {
             gunHold_.valid = false;
         }
-        if (int(a.state[11]) == br::CHUTE) {
+        if (int(a.state[11]) == br::FREEFALL) {
+            // Em queda livre, renderiza o equipamento de paraquedas (rig container) no dorso do herói
+            const auto &actor = scene_.characters[scene_.characterCount - 1];
+            int torso = asset->model.nodeIndex("torso");
+            Mat4 torsoWorld = torso >= 0 ? (actor.world * actor.nodes[size_t(torso)]) : actor.world;
+            scene_.boxes.push_back({torsoWorld * Mat4::translation({0.f, .12f, -.24f}) * Mat4::scale({.38f, .48f, .18f}),
+                                    {.18f, .22f, .28f, 1.f}, 0.f});
+            scene_.boxes.push_back({torsoWorld * Mat4::translation({0.f, .24f, -.26f}) * Mat4::scale({.32f, .14f, .20f}),
+                                    {.95f, .68f, .15f, 1.f}, 0.f});
+        } else if (int(a.state[11]) == br::CHUTE) {
+            const float deployTime = a.presentation.chuteDeployTime;
+            // Sequência de abertura: expansão progressiva do tecido e subida do velame em 0.55s
+            const float deployT = clampf(deployTime / 0.55f, 0.f, 1.f);
+            const float canopyDeploy = smoothstepf(0.05f, 1.f, deployT);
+            const float canopyHeight = lerpf(1.5f, 4.22f, canopyDeploy);
+            const float canopyScaleX = lerpf(0.2f, 1.f, canopyDeploy);
+            const float canopyScaleZ = lerpf(0.2f, 1.f, canopyDeploy);
+
             const float yaw = -a.presentation.yaw;
             const Vec3 fwd = forwardFromYaw(a.presentation.yaw), right = rightFromYaw(a.presentation.yaw), up(0, 1, 0);
             auto chutePart = [&](float lx, float ly, float lz, Vec3 sz, Vec4 col, float roll = 0.f, float pitch = 0.f) {
@@ -1157,37 +1197,42 @@ void Game::buildScene() {
                          Mat4::rotationX(pitch) * Mat4::scale(sz);
                 scene_.boxes.push_back({m, col, 0.f});
             };
+
             // Mochila tática e alças no tronco
             chutePart(0.f, 1.24f, -0.22f, {.42f, .50f, .20f}, {.18f, .22f, .28f, 1.f});
             chutePart(0.f, 1.45f, -0.24f, {.36f, .14f, .22f}, {.95f, .68f, .15f, 1.f});
             chutePart(-.15f, 1.38f, -.04f, {.08f, .34f, .26f}, {.14f, .17f, .22f, 1.f});
             chutePart(.15f, 1.38f, -.04f, {.08f, .34f, .26f}, {.14f, .17f, .22f, 1.f});
-            // Velame arqueado de 7 células (ram-air) com estabilizadores laterais
-            for (int i = -3; i <= 3; ++i) {
-                float lx = float(i) * .64f;
-                float ly = 4.22f - .085f * float(i * i);
-                float cRoll = -float(i) * .11f + a.presentation.lean * .5f;
-                Vec4 col = i == 0 ? Vec4{.98f, .74f, .15f, 1.f}
-                                  : (std::abs(i) == 1 ? Vec4{.17f, .21f, .28f, 1.f}
-                                                      : (std::abs(i) == 2 ? Vec4{.94f, .46f, .12f, 1.f}
-                                                                          : Vec4{.14f, .17f, .23f, 1.f}));
-                chutePart(lx, ly, 0.f, {.66f, .18f, 2.38f}, col, cRoll, .06f);
-                chutePart(lx, ly - .06f, 1.14f, {.58f, .13f, .18f}, {.08f, .10f, .14f, 1.f}, cRoll, .06f);
-                chutePart(lx + (i < 0 ? -.31f : .31f), ly - .12f, 0.f, {.06f, .26f, 2.26f}, {.10f, .13f, .18f, 1.f}, cRoll, .06f);
-            }
-            chutePart(-2.26f, 3.20f, -.05f, {.10f, .70f, 2.12f}, {.94f, .46f, .12f, 1.f}, .22f, .06f);
-            chutePart(2.26f, 3.20f, -.05f, {.10f, .70f, 2.12f}, {.94f, .46f, .12f, 1.f}, -.22f, .06f);
-            // Manoplas de direção e 8 linhas de suspensão (tirantes frontais e traseiros)
-            chutePart(-.26f, 1.72f, .08f, {.12f, .06f, .12f}, {.96f, .72f, .14f, 1.f});
-            chutePart(.26f, 1.72f, .08f, {.12f, .06f, .12f}, {.96f, .72f, .14f, 1.f});
-            for (int i : {-3, -1, 1, 3}) {
-                float lx = float(i) * .64f;
-                float ly = 4.10f - .085f * float(i * i);
-                Vec3 riser = pos + up * 1.56f + right * (i < 0 ? -.24f : .24f);
-                Vec3 canopyFront = pos + right * lx + up * ly + fwd * .85f;
-                Vec3 canopyRear = pos + right * lx + up * (ly - .08f) - fwd * .85f;
-                scene_.beams.push_back({canopyFront, riser, {.86f, .88f, .92f, .95f}, .024f});
-                scene_.beams.push_back({canopyRear, riser, {.78f, .80f, .85f, .95f}, .024f});
+
+            if (deployT > 0.05f) {
+                // Velame arqueado de 7 células (ram-air) com estabilizadores laterais
+                for (int i = -3; i <= 3; ++i) {
+                    float lx = float(i) * (.64f * canopyScaleX);
+                    float ly = canopyHeight - .085f * float(i * i) * canopyScaleX;
+                    float cRoll = -float(i) * .11f + a.presentation.lean * .5f;
+                    Vec4 col = i == 0 ? Vec4{.98f, .74f, .15f, 1.f}
+                                      : (std::abs(i) == 1 ? Vec4{.17f, .21f, .28f, 1.f}
+                                                          : (std::abs(i) == 2 ? Vec4{.94f, .46f, .12f, 1.f}
+                                                                              : Vec4{.14f, .17f, .23f, 1.f}));
+                    chutePart(lx, ly, 0.f, {.66f * canopyScaleX, .18f * canopyDeploy, 2.38f * canopyScaleZ}, col, cRoll, .06f);
+                    chutePart(lx, ly - .06f * canopyDeploy, 1.14f * canopyScaleZ, {.58f * canopyScaleX, .13f * canopyDeploy, .18f * canopyScaleZ}, {.08f, .10f, .14f, 1.f}, cRoll, .06f);
+                    chutePart(lx + (i < 0 ? -.31f : .31f) * canopyScaleX, ly - .12f * canopyDeploy, 0.f, {.06f * canopyScaleX, .26f * canopyDeploy, 2.26f * canopyScaleZ}, {.10f, .13f, .18f, 1.f}, cRoll, .06f);
+                }
+                chutePart(-2.26f * canopyScaleX, canopyHeight - 1.02f, -.05f, {.10f * canopyScaleX, .70f * canopyDeploy, 2.12f * canopyScaleZ}, {.94f, .46f, .12f, 1.f}, .22f, .06f);
+                chutePart(2.26f * canopyScaleX, canopyHeight - 1.02f, -.05f, {.10f * canopyScaleX, .70f * canopyDeploy, 2.12f * canopyScaleZ}, {.94f, .46f, .12f, 1.f}, -.22f, .06f);
+
+                // Manoplas de direção e 8 linhas de suspensão (tirantes frontais e traseiros)
+                chutePart(-.26f, 1.72f, .08f, {.12f, .06f, .12f}, {.96f, .72f, .14f, 1.f});
+                chutePart(.26f, 1.72f, .08f, {.12f, .06f, .12f}, {.96f, .72f, .14f, 1.f});
+                for (int i : {-3, -1, 1, 3}) {
+                    float lx = float(i) * (.64f * canopyScaleX);
+                    float ly = (canopyHeight - .12f) - .085f * float(i * i) * canopyScaleX;
+                    Vec3 riser = pos + up * 1.56f + right * (i < 0 ? -.24f : .24f);
+                    Vec3 canopyFront = pos + right * lx + up * ly + fwd * (.85f * canopyScaleZ);
+                    Vec3 canopyRear = pos + right * lx + up * (ly - .08f) - fwd * (.85f * canopyScaleZ);
+                    scene_.beams.push_back({canopyFront, riser, {.86f, .88f, .92f, .95f * canopyDeploy}, .024f});
+                    scene_.beams.push_back({canopyRear, riser, {.78f, .80f, .85f, .95f * canopyDeploy}, .024f});
+                }
             }
         }
     }

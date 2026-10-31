@@ -100,8 +100,6 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
     private var reviveHeld = false
     private val planeJumpRect = RectF()
     private val planeJumpTouchArea = RectF()
-    private val chuteButtonRect = RectF()
-    private val chuteTouchArea = RectF()
 
     val flight: Int
         get() {
@@ -404,8 +402,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
             return Role.LOOK
         }
         if (!editing && flight in 1..2) {
-            // Em queda livre / paraquedas: botão de abrir paraquedas, mapa, pausa, joystick ou olhar
-            if (chuteTouchArea.contains(x, y)) return Role.JUMP
+            // Em descida aérea (queda livre / paraquedas): joystick para direcionar, mapa, pausa ou olhar em volta
             if (touchHit(HudControl.MAP, x, y)) return Role.MAP
             if (touchHit(HudControl.PAUSE, x, y)) return Role.PAUSE
             if (HudGestures.joystickRegion(x, y, w, h, stickHomeX, touches.values.any { it.role == Role.JOYSTICK })) return Role.JOYSTICK
@@ -459,10 +456,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
                             NativeBridge.pressJump()
                             haptic(true)
                             message("SALTANDO DO AVIÃO!", Palette.gold)
-                        } else if (f in 1..2) {
-                            NativeBridge.battleAction(2048)
-                            haptic(true)
-                        } else {
+                        } else if (f == 3) {
                             NativeBridge.pressJump()
                             haptic(false)
                         }
@@ -1229,64 +1223,42 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
     private fun drawDescentControls(canvas: Canvas, w: Float, h: Float) {
         val cx = w - d(145f)
         val cy = h * 0.58f
-        val btnW = d(180f)
-        val btnH = d(56f)
-        val left = cx - btnW / 2f
-        val top = cy - btnH / 2f
-        val right = cx + btnW / 2f
-        val bottom = cy + btnH / 2f
 
         val f = flight
-        if (f == 1) { // Queda Livre (FREEFALL)
-            chuteButtonRect.set(left, top, right, bottom)
-            chuteTouchArea.set(left - d(20f), top - d(20f), right + d(20f), bottom + d(20f))
-
-            val pressed = touches.values.any { chuteTouchArea.contains(it.x, it.y) }
-            val now = SystemClock.elapsedRealtime()
-            val pulse = (sin(now * 0.007f) * 0.2f + 0.8f)
-
-            // Halo ciano
-            p.style = Paint.Style.FILL
-            p.color = Color.argb((60 * pulse).toInt(), 0, 180, 216)
-            rect.set(left - d(6f), top - d(6f), right + d(6f), bottom + d(6f))
-            canvas.drawRoundRect(rect, d(18f), d(18f), p)
-
-            // Fundo ciano tático
-            val topC = if (pressed) Color.rgb(0, 140, 180) else Color.rgb(0, 190, 225)
-            val botC = if (pressed) Color.rgb(0, 95, 145) else Color.rgb(0, 130, 190)
-            p.shader = LinearGradient(left, top, left, bottom, topC, botC, Shader.TileMode.CLAMP)
-            canvas.drawRoundRect(chuteButtonRect, d(14f), d(14f), p)
-            p.shader = null
-
-            // Borda
-            p.style = Paint.Style.STROKE
-            p.strokeWidth = d(2.2f)
-            p.color = if (pressed) Color.WHITE else Color.rgb(180, 240, 255)
-            canvas.drawRoundRect(chuteButtonRect, d(14f), d(14f), p)
-            p.style = Paint.Style.FILL
-
-            // Texto e Ícone
-            textPaint.textAlign = Paint.Align.CENTER
-            textPaint.typeface = Fonts.bold
-            textPaint.textSize = d(15f)
-            textPaint.color = Color.WHITE
-            canvas.drawText("ABRIR PARAQUEDAS", cx, cy + d(1f), textPaint)
-            textPaint.textSize = d(8.5f)
-            textPaint.color = Color.argb(220, 230, 250, 255)
-            canvas.drawText("TOQUE PARA PLANAR", cx, cy + d(13f), textPaint)
-        } else if (f == 2) { // Paraquedas Aberto (CHUTE)
-            chuteButtonRect.setEmpty()
-            chuteTouchArea.setEmpty()
-            val cardW = d(200f)
+        if (f == 1) { // Queda Livre (FREEFALL) - Banner informativo de status, abertura automática ao atingir altitude de segurança
+            val cardW = d(210f)
             val cardH = d(36f)
             val cardL = cx - cardW / 2f
             val cardT = cy - cardH / 2f
             rect.set(cardL, cardT, cardL + cardW, cardT + cardH)
             p.style = Paint.Style.FILL
-            p.color = Color.argb(180, 16, 24, 32)
+            p.color = Color.argb(185, 16, 24, 32)
             canvas.drawRoundRect(rect, d(8f), d(8f), p)
             p.style = Paint.Style.STROKE
-            p.strokeWidth = d(1.2f)
+            p.strokeWidth = d(1.4f)
+            p.color = Color.rgb(255, 195, 20)
+            canvas.drawRoundRect(rect, d(8f), d(8f), p)
+            p.style = Paint.Style.FILL
+
+            textPaint.textAlign = Paint.Align.CENTER
+            textPaint.typeface = Fonts.bold
+            textPaint.textSize = d(12f)
+            textPaint.color = Color.rgb(255, 215, 60)
+            canvas.drawText("QUEDA LIVRE", cx, cardT + d(15f), textPaint)
+            textPaint.textSize = d(9f)
+            textPaint.color = Color.argb(230, 255, 255, 255)
+            canvas.drawText("DIRECIONE A QUEDA NO JOYSTICK", cx, cardT + d(28f), textPaint)
+        } else if (f == 2) { // Paraquedas Aberto (CHUTE) - Banner informativo de status, sem interação
+            val cardW = d(210f)
+            val cardH = d(36f)
+            val cardL = cx - cardW / 2f
+            val cardT = cy - cardH / 2f
+            rect.set(cardL, cardT, cardL + cardW, cardT + cardH)
+            p.style = Paint.Style.FILL
+            p.color = Color.argb(185, 16, 24, 32)
+            canvas.drawRoundRect(rect, d(8f), d(8f), p)
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = d(1.4f)
             p.color = Color.rgb(0, 180, 216)
             canvas.drawRoundRect(rect, d(8f), d(8f), p)
             p.style = Paint.Style.FILL
@@ -1297,7 +1269,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
             textPaint.color = Color.rgb(0, 220, 255)
             canvas.drawText("PARAQUEDAS ABERTO", cx, cardT + d(15f), textPaint)
             textPaint.textSize = d(9f)
-            textPaint.color = Color.argb(220, 255, 255, 255)
+            textPaint.color = Color.argb(230, 255, 255, 255)
             canvas.drawText("DIRECIONE O POUSO NO JOYSTICK", cx, cardT + d(28f), textPaint)
         }
 
@@ -1306,7 +1278,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
         val altCardW = d(110f)
         val altCardH = d(26f)
         val altL = cx - altCardW / 2f
-        val altT = top - d(36f)
+        val altT = cy - d(18f) - d(36f)
         rect.set(altL, altT, altL + altCardW, altT + altCardH)
         p.style = Paint.Style.FILL
         p.color = Color.argb(180, 10, 15, 20)

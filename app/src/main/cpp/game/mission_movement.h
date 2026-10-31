@@ -82,19 +82,53 @@ struct GroundMotion {
 template <class Query>
 void stepDescent(const Query &world, BodyState &body, int &flight, float mx, float mz, float yaw, bool open,
                  float altitude, float dt) {
-    const float horiz = flight == 1 ? 17.f : 10.f;
-    Vec3 wish = rightFromYaw(yaw) * mx + forwardFromYaw(yaw) * mz;
-    if (lengthXZ(wish) > 1)
-        wish = normalize(wish);
-    body.velocity.x = wish.x * horiz;
-    body.velocity.z = wish.z * horiz;
-    if (flight == 1 && (altitude <= 30 || (open && altitude > 10)))
+    if (!std::isfinite(dt) || dt <= 0.0f || dt > 0.2f)
+        dt = 0.05f;
+
+    // Abertura automática a uma altitude de segurança configurável (~75m AGL) ou proteção para salto baixo
+    constexpr float kAutoChuteAltitude = 75.0f;
+    if (flight == 1 && (altitude <= kAutoChuteAltitude || (open && altitude > 10.0f)))
         flight = 2;
-    body.velocity.y = flight == 2 ? -6.f : std::max(-45.f, body.velocity.y - 20 * dt);
-    moveBodyAgainst(world, body, body.velocity * dt, 0);
+
+    Vec3 wish = rightFromYaw(yaw) * mx + forwardFromYaw(yaw) * mz;
+    float wishLen = lengthXZ(wish);
+    if (wishLen > 1.0f)
+        wish = wish * (1.0f / wishLen);
+
+    if (flight == 1) { // Queda Livre (FREEFALL)
+        // Aerodinâmica horizontal com aceleração progressiva e inércia
+        const float targetHoriz = 22.0f;
+        const Vec3 targetVel = wish * targetHoriz;
+        const float steerInertia = damp(4.2f, dt);
+        body.velocity.x = lerpf(body.velocity.x, targetVel.x, steerInertia);
+        body.velocity.z = lerpf(body.velocity.z, targetVel.z, steerInertia);
+
+        // Aceleração vertical com resistência aerodinâmica crescente até a velocidade terminal (~ -46 m/s)
+        constexpr float kFreefallTerminal = -46.0f;
+        constexpr float kFallGravity = -22.0f;
+        float speedRatio = clampf(std::abs(body.velocity.y) / 46.0f, 0.0f, 1.0f);
+        float netAccelY = kFallGravity * (1.0f - speedRatio * speedRatio);
+        body.velocity.y = std::max(kFreefallTerminal, body.velocity.y + netAccelY * dt);
+    } else if (flight == 2) { // Paraquedas Aberto (CHUTE)
+        // Planeio horizontal contínuo e responsivo
+        const float targetHoriz = 11.5f;
+        const Vec3 targetVel = wish * targetHoriz;
+        const float steerInertia = damp(3.2f, dt);
+        body.velocity.x = lerpf(body.velocity.x, targetVel.x, steerInertia);
+        body.velocity.z = lerpf(body.velocity.z, targetVel.z, steerInertia);
+
+        // Desaceleração vertical progressiva e visível até a velocidade de descida segura (~ -5.5 m/s)
+        constexpr float kChuteTerminal = -5.5f;
+        const float brakeFactor = damp(3.6f, dt);
+        body.velocity.y = lerpf(body.velocity.y, kChuteTerminal, brakeFactor);
+    }
+
+    moveBodyAgainst(world, body, body.velocity * dt, 0.0f);
     if (body.onGround) {
-        flight = 3;
-        body.velocity.y = 0;
+        flight = 3; // Pouso concluído (LANDED)
+        body.velocity.y = 0.0f;
+        body.velocity.x *= 0.35f;
+        body.velocity.z *= 0.35f;
     }
 }
 template <class Query>

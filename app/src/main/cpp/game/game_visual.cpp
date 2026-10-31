@@ -45,6 +45,7 @@ void Game::updateActor(Actor &actor, bool local, const InputState &input, float 
                                                                 pos + Vec3(.2999f, .001f, .2999f));
     if (int(v[11]) != br::LANDED)
         motion.onGround = int(v[11]) == br::IN_PLANE;
+    motion.flight = int(v[11]);
     motion.utility = local && (throwAiming_ || actor.throwTime >= 0);
     motion.reloading = v[14] > 0;
     animateHero(asset->model, actor.anim, actor.presentation, motion, dt);
@@ -108,12 +109,77 @@ void Game::poseActor(Actor &actor, bool local, Pose &pose) {
     const bool authoredJump = playing && !grounded && currentClip == m.clipIndex("jump");
     if (playing && !authoredJump)
         poseAir(pose, m, airBlend_, !armed || armedW < 0.5f);
+    if (int(actor.state[11]) == br::FREEFALL) {
+        int armR = m.nodeIndex("arm-right"), armL = m.nodeIndex("arm-left");
+        int legR = m.nodeIndex("leg-right"), legL = m.nodeIndex("leg-left");
+        int torso = m.nodeIndex("torso"), head = m.nodeIndex("head");
+
+        float time = actor.presentation.flightTime;
+        float buffetArmR = std::sin(time * 15.f) * 0.035f;
+        float buffetArmL = std::cos(time * 15.f) * 0.035f;
+        float buffetLegR = std::sin(time * 13.f + 1.2f) * 0.03f;
+        float buffetLegL = std::cos(time * 13.f + 1.2f) * 0.03f;
+
+        // Braços abertos lateralmente e levemente para trás (postura horizontal de paraquedista)
+        if (armR >= 0)
+            pose.r[armR] = Quat::axisAngle({0, 0, 1}, -0.92f + buffetArmR) *
+                           Quat::axisAngle({1, 0, 0}, -0.42f) *
+                           Quat::axisAngle({0, 1, 0}, -0.25f);
+        if (armL >= 0)
+            pose.r[armL] = Quat::axisAngle({0, 0, 1}, 0.92f + buffetArmL) *
+                           Quat::axisAngle({1, 0, 0}, -0.42f) *
+                           Quat::axisAngle({0, 1, 0}, 0.25f);
+
+        // Pernas flexionadas nos joelhos e levemente afastadas
+        if (legR >= 0)
+            pose.r[legR] = Quat::axisAngle({1, 0, 0}, 0.50f + buffetLegR) *
+                           Quat::axisAngle({0, 0, 1}, -0.22f);
+        if (legL >= 0)
+            pose.r[legL] = Quat::axisAngle({1, 0, 0}, 0.50f + buffetLegL) *
+                           Quat::axisAngle({0, 0, 1}, 0.22f);
+
+        // Tronco arqueado no fluxo de vento
+        if (torso >= 0)
+            pose.r[torso] = Quat::axisAngle({1, 0, 0}, -0.16f);
+
+        // Cabeça erguida olhando à frente
+        if (head >= 0)
+            pose.r[head] = Quat::axisAngle({1, 0, 0}, -0.52f);
+
+        return;
+    }
     if (int(actor.state[11]) == br::CHUTE) {
         int armR = m.nodeIndex("arm-right"), armL = m.nodeIndex("arm-left");
+        int legR = m.nodeIndex("leg-right"), legL = m.nodeIndex("leg-left");
+        int torso = m.nodeIndex("torso"), head = m.nodeIndex("head");
+
+        float lean = actor.presentation.lean;
+        // Puxada dinâmica dos tirantes conforme rotação/curva
+        float armRY = -2.45f + (lean > 0.05f ? 0.35f * clampf(lean / 0.3f, 0.f, 1.f) : 0.f);
+        float armLY = -2.45f + (lean < -0.05f ? 0.35f * clampf(-lean / 0.3f, 0.f, 1.f) : 0.f);
+
         if (armR >= 0)
-            pose.r[armR] = Quat::axisAngle({0, 0, 1}, -0.22f) * Quat::axisAngle({1, 0, 0}, -2.45f);
+            pose.r[armR] = Quat::axisAngle({0, 0, 1}, -0.24f) * Quat::axisAngle({1, 0, 0}, armRY);
         if (armL >= 0)
-            pose.r[armL] = Quat::axisAngle({0, 0, 1}, 0.22f) * Quat::axisAngle({1, 0, 0}, -2.45f);
+            pose.r[armL] = Quat::axisAngle({0, 0, 1}, 0.24f) * Quat::axisAngle({1, 0, 0}, armLY);
+
+        // Pernas no arnês: prepara absorção de impacto quando próximo do solo
+        Vec3 actorPos = local ? visualPlayer_.position : actor.position;
+        float agl = source_ ? (actorPos.y - source_->map.heightAt(int(actorPos.x), int(actorPos.z))) : 100.f;
+        float flare = clampf((6.0f - agl) / 5.0f, 0.0f, 1.0f);
+        float legAngle = lerpf(0.20f, 0.52f, flare);
+
+        if (legR >= 0)
+            pose.r[legR] = Quat::axisAngle({1, 0, 0}, legAngle) * Quat::axisAngle({0, 0, 1}, -0.10f);
+        if (legL >= 0)
+            pose.r[legL] = Quat::axisAngle({1, 0, 0}, legAngle) * Quat::axisAngle({0, 0, 1}, 0.10f);
+
+        if (torso >= 0)
+            pose.r[torso] = Quat{};
+
+        if (head >= 0)
+            pose.r[head] = Quat::axisAngle({1, 0, 0}, 0.08f);
+
         return;
     }
     if (!armed)
@@ -186,7 +252,7 @@ void Game::poseActor(Actor &actor, bool local, Pose &pose) {
 }
 
 void Game::addCharacter(CharacterAsset *asset, const Vec3 &pos, float yaw, float scale, const Pose &pose,
-                        const Vec3 &tint, float flash, const Vec3 &scaleXYZ, float roll) {
+                        const Vec3 &tint, float flash, const Vec3 &scaleXYZ, float roll, float pitch) {
     if (!asset)
         return;
     if (scene_.characterCount >= scene_.characters.size())
@@ -194,7 +260,10 @@ void Game::addCharacter(CharacterAsset *asset, const Vec3 &pos, float yaw, float
     CharacterDraw &draw = scene_.characters[scene_.characterCount++];
     draw.asset = asset;
     float s = scale * 1.8f / std::max(0.1f, asset->model.bindHeight());
-    draw.world = Mat4::translation(pos) * Mat4::rotationY(modelRotationFromYaw(yaw)) * Mat4::rotationZ(roll) *
+    draw.world = Mat4::translation(pos) * Mat4::rotationY(modelRotationFromYaw(yaw)) *
+                 Mat4::translation({0.0f, 0.9f, 0.0f}) *
+                 Mat4::rotationX(pitch) * Mat4::rotationZ(roll) *
+                 Mat4::translation({0.0f, -0.9f, 0.0f}) *
                  Mat4::scale({s * scaleXYZ.x, s * scaleXYZ.y, s * scaleXYZ.z}) *
                  Mat4::translation({0, -asset->model.bindMinY(), 0});
     asset->model.globals(pose, draw.nodes);
