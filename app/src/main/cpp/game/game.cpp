@@ -1021,6 +1021,76 @@ void Game::buildScene() {
         int arm = asset->model.nodeIndex("arm-right");
         if (arm >= 0)
             addWeaponModel(scene_.characters[scene_.characterCount - 1], arm, previewWeapon_, nullptr);
+
+        // Cenário 3D do Lobby (hangar militar, pedestal octogonal luminoso, pet companheiro, expositor de armas e buggy)
+        const Vec3 lp = layout_.start;
+        // 1. Pedestal Octogonal Iluminado sob o jogador
+        box(lp + Vec3(0, -.08f, 0), {2.8f, .16f, 2.8f}, {.18f, .20f, .25f, 1.f}, 0.f);
+        box(lp + Vec3(0, -.06f, 0), {2.5f, .18f, 2.5f}, {.14f, .16f, .20f, 1.f}, kPi * .25f);
+        box(lp + Vec3(0, -.03f, 0), {2.0f, .14f, 2.0f}, {.22f, .26f, .32f, 1.f}, 0.f);
+        for (int k = 0; k < 16; ++k) {
+            float a0 = k * kTwoPi / 16.f, a1 = (k + 1) * kTwoPi / 16.f;
+            Vec3 b0 = lp + Vec3(std::cos(a0) * 1.32f, .04f, std::sin(a0) * 1.32f);
+            Vec3 b1 = lp + Vec3(std::cos(a1) * 1.32f, .04f, std::sin(a1) * 1.32f);
+            scene_.beams.push_back({b0, b1, {.98f, .65f, .10f, .95f}, .055f});
+        }
+        // Trilhos de luz âmbar no piso do hangar em direção à câmera
+        scene_.beams.push_back({lp + Vec3(-.95f, .02f, 1.32f), lp + Vec3(-1.45f, .02f, 4.2f), {.98f, .55f, .08f, .9f}, .045f});
+        scene_.beams.push_back({lp + Vec3(.95f, .02f, 1.32f), lp + Vec3(1.45f, .02f, 4.2f), {.98f, .55f, .08f, .9f}, .045f});
+
+        // 2. Cachorrinho Voxel Companheiro com bandana vermelha
+        const Vec3 dp = lp + Vec3(.70f, 0.f, .16f);
+        scene_.shadows.push_back({dp, .28f, .18f});
+        box(dp + Vec3(0, .24f, 0), {.32f, .26f, .44f}, {.88f, .72f, .48f, 1.f}, .18f);
+        for (float fx : {-.11f, .11f}) {
+            for (float fz : {-.14f, .14f}) {
+                box(dp + Vec3(fx, .08f, fz), {.08f, .16f, .08f}, {.95f, .95f, .95f, 1.f}, .18f);
+            }
+        }
+        box(dp + Vec3(0, .42f, .18f), {.28f, .26f, .26f}, {.88f, .72f, .48f, 1.f}, .18f);
+        box(dp + Vec3(0, .36f, .28f), {.16f, .14f, .12f}, {.95f, .95f, .95f, 1.f}, .18f);
+        box(dp + Vec3(0, .39f, .34f), {.06f, .05f, .04f}, {.12f, .12f, .12f, 1.f}, .18f);
+        box(dp + Vec3(-.08f, .46f, .28f), {.04f, .06f, .04f}, {.10f, .10f, .10f, 1.f}, .18f);
+        box(dp + Vec3(.08f, .46f, .28f), {.04f, .06f, .04f}, {.10f, .10f, .10f, 1.f}, .18f);
+        box(dp + Vec3(-.15f, .48f, .16f), {.07f, .14f, .10f}, {.56f, .36f, .18f, 1.f}, .18f);
+        box(dp + Vec3(.15f, .48f, .16f), {.07f, .14f, .10f}, {.56f, .36f, .18f, 1.f}, .18f);
+        box(dp + Vec3(0, .32f, .14f), {.30f, .08f, .30f}, {.92f, .18f, .16f, 1.f}, .18f);
+        box(dp + Vec3(0, .24f, .22f), {.12f, .10f, .07f}, {.92f, .18f, .16f, 1.f}, .18f);
+        box(dp + Vec3(0, .34f, -.24f), {.06f, .16f, .06f}, {.88f, .72f, .48f, 1.f}, .35f);
+
+        // 3. Expositor de Armas Iluminado com borda neon azul (fundo à direita)
+        const Vec3 wr = lp + Vec3(2.75f, 0.f, -1.95f);
+        const float wrYaw = -.32f;
+        box(wr + Vec3(0, 1.25f, 0), {2.1f, 1.8f, .18f}, {.14f, .17f, .22f, 1.f}, wrYaw);
+        box(wr + Vec3(0, 1.25f, .02f), {1.95f, 1.65f, .06f}, {.08f, .10f, .14f, 1.f}, wrYaw);
+        Vec3 rRight = rightFromYaw(wrYaw);
+        Vec3 rUp(0, 1.f, 0);
+        Vec3 cTL = wr + Vec3(0, 1.25f, .08f) - rRight * .98f + rUp * .82f;
+        Vec3 cTR = wr + Vec3(0, 1.25f, .08f) + rRight * .98f + rUp * .82f;
+        Vec3 cBR = wr + Vec3(0, 1.25f, .08f) + rRight * .98f - rUp * .82f;
+        Vec3 cBL = wr + Vec3(0, 1.25f, .08f) - rRight * .98f - rUp * .82f;
+        scene_.beams.push_back({cTL, cTR, {.22f, .78f, 1.f, .95f}, .045f});
+        scene_.beams.push_back({cTR, cBR, {.22f, .78f, 1.f, .95f}, .045f});
+        scene_.beams.push_back({cBR, cBL, {.22f, .78f, 1.f, .95f}, .045f});
+        scene_.beams.push_back({cBL, cTL, {.22f, .78f, 1.f, .95f}, .045f});
+        // 3 armas expostas no rack (fuzil vermelho, fuzil dourado, sniper roxo)
+        box(wr + Vec3(0, 1.62f, .12f), {1.25f, .24f, .08f}, {.92f, .18f, .24f, 1.f}, wrYaw);
+        box(wr + Vec3(0, 1.25f, .12f), {1.35f, .22f, .08f}, {.96f, .76f, .18f, 1.f}, wrYaw);
+        box(wr + Vec3(0, .88f, .12f), {1.45f, .20f, .08f}, {.72f, .24f, .92f, 1.f}, wrYaw);
+
+        // 4. Buggy de Combate Militar na plataforma (fundo à esquerda)
+        const Vec3 bg = lp + Vec3(-2.85f, 0.f, -1.65f);
+        const float bgYaw = .30f;
+        box(bg + Vec3(0, .18f, 0), {2.1f, .18f, 2.5f}, {.16f, .18f, .22f, 1.f}, bgYaw);
+        for (float tx : {-.82f, .82f}) {
+            for (float tz : {-.88f, .88f}) {
+                box(bg + Vec3(tx, .42f, tz), {.38f, .52f, .38f}, {.12f, .12f, .12f, 1.f}, bgYaw);
+            }
+        }
+        box(bg + Vec3(0, .66f, 0), {1.55f, .42f, 2.1f}, {.86f, .82f, .74f, 1.f}, bgYaw);
+        box(bg + Vec3(0, 1.12f, -.08f), {1.25f, .52f, 1.15f}, {.20f, .22f, .26f, 1.f}, bgYaw);
+        box(bg + Vec3(-.42f, .68f, 1.05f), {.16f, .12f, .10f}, {1.f, .85f, .32f, 1.f}, bgYaw);
+        box(bg + Vec3(.42f, .68f, 1.05f), {.16f, .12f, .10f}, {1.f, .85f, .32f, 1.f}, bgYaw);
         return;
     }
     if (loading_)

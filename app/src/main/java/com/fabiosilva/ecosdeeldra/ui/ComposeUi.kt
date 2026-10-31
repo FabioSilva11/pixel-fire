@@ -145,8 +145,8 @@ fun LobbyComposeScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .padding(start = 14.dp, top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+                .padding(start = 12.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             LobbyLeftMenuButton(
                 label = "LOJA",
@@ -168,7 +168,7 @@ fun LobbyComposeScreen(
             LobbyLeftMenuButton(
                 label = "MISSÕES",
                 highlighted = false,
-                badge = false,
+                badge = true,
                 icon = { drawMissionsIcon(Color.White) },
                 onClick = { app.audio.playUi("click", 0.6f) }
             )
@@ -203,7 +203,7 @@ fun LobbyComposeScreen(
             },
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 14.dp, bottom = 10.dp)
+                .padding(start = 12.dp, bottom = 12.dp)
         )
 
         // 5. DIREITA / BASE DIREITA: Card BR RANQUEADO (Solo / Duo / Squad) + Botão JOGAR
@@ -225,7 +225,7 @@ fun LobbyComposeScreen(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 14.dp, bottom = 10.dp)
+                .padding(end = 12.dp, bottom = 12.dp)
         )
 
         // Modais dos menus do lobby
@@ -270,7 +270,7 @@ private fun TopProfileAndCurrencyBar(
         // Card do Jogador (Avatar + Nome + Nv. 67 + Barra XP)
         Row(
             modifier = Modifier
-                .height(46.dp)
+                .height(42.dp)
                 .clip(CutCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 6.dp, bottomEnd = 10.dp))
                 .background(
                     Brush.horizontalGradient(
@@ -283,12 +283,12 @@ private fun TopProfileAndCurrencyBar(
                     CutCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 6.dp, bottomEnd = 10.dp)
                 )
                 .clickable(onClick = onProfileClick)
-                .padding(horizontal = 6.dp, vertical = 4.dp),
+                .padding(horizontal = 6.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(34.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(Color(0xFF3A2618))
                     .border(1.5.dp, Color(0xFFD6933A), RoundedCornerShape(4.dp)),
@@ -302,9 +302,9 @@ private fun TopProfileAndCurrencyBar(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(7.dp))
             Column(
-                modifier = Modifier.width(104.dp),
+                modifier = Modifier.width(100.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -326,19 +326,19 @@ private fun TopProfileAndCurrencyBar(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(5.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(Color(0xFF0D111A))
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color.Black)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .fillMaxWidth(0.62f)
-                                .background(ColGold)
+                                .fillMaxWidth(0.65f)
+                                .background(Color(0xFFFAEA50))
                         )
                     }
                 }
@@ -346,43 +346,50 @@ private fun TopProfileAndCurrencyBar(
             Spacer(modifier = Modifier.width(4.dp))
         }
 
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(5.dp))
 
         // Barra de Moedas e Diamantes
         Row(
             modifier = Modifier
-                .height(38.dp)
+                .height(36.dp)
                 .clip(RoundedCornerShape(6.dp))
                 .background(Color(0xCC0F1420))
                 .border(1.dp, ColBorder, RoundedCornerShape(6.dp))
-                .padding(horizontal = 10.dp),
+                .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Canvas(modifier = Modifier.size(18.dp)) {
+            Canvas(modifier = Modifier.size(17.dp)) {
                 drawCoinIcon()
             }
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(5.dp))
             Text(
                 text = "205243",
                 color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Canvas(modifier = Modifier.size(18.dp)) {
-                drawDiamondIcon()
-            }
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "6",
-                color = Color.White,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Spacer(modifier = Modifier.width(10.dp))
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .width(1.dp)
+                    .height(16.dp)
+                    .background(Color(0xFF384358))
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Canvas(modifier = Modifier.size(17.dp)) {
+                drawDiamondIcon()
+            }
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "6",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(Color(0xFF232C3D))
                     .border(1.dp, ColBorderLight, RoundedCornerShape(4.dp))
@@ -392,7 +399,7 @@ private fun TopProfileAndCurrencyBar(
                 Text(
                     text = "+",
                     color = Color.White,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Black
                 )
             }
@@ -408,9 +415,9 @@ private fun LobbyLeftMenuButton(
     icon: DrawScope.() -> Unit,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = RoundedCornerShape(5.dp)
     val bgBrush = if (highlighted) {
-        Brush.horizontalGradient(listOf(Color(0xE63D2A0A), Color(0xCC1E170C)))
+        Brush.horizontalGradient(listOf(Color(0xE636250E), Color(0xCC1C150A)))
     } else {
         Brush.horizontalGradient(listOf(Color(0xD9171E2E), Color(0xCC111622)))
     }
@@ -419,37 +426,46 @@ private fun LobbyLeftMenuButton(
 
     Row(
         modifier = Modifier
-            .size(width = 122.dp, height = 40.dp)
+            .size(width = 108.dp, height = 36.dp)
             .clip(shape)
             .background(bgBrush)
             .border(if (highlighted) 1.5.dp else 1.dp, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 icon()
             }
             if (badge) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(11.dp)
                         .align(Alignment.TopEnd)
-                        .offset(x = 2.dp, y = (-2).dp)
+                        .offset(x = 4.dp, y = (-4).dp)
                         .clip(CircleShape)
                         .background(ColRed)
-                        .border(1.dp, Color.White, CircleShape)
-                )
+                        .border(1.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "!",
+                        color = Color.White,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        lineHeight = 8.sp
+                    )
+                }
             }
         }
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
             color = textColor,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.5.sp
+            letterSpacing = 0.4.sp
         )
     }
 }
@@ -460,10 +476,10 @@ private fun BottomLeftVaultCharacterBar(
     onCharacterClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = CutCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 10.dp, bottomEnd = 4.dp)
+    val shape = RoundedCornerShape(5.dp)
     Row(
         modifier = modifier
-            .height(40.dp)
+            .height(36.dp)
             .clip(shape)
             .background(Color(0xD9111622))
             .border(1.dp, ColBorder, shape),
@@ -473,17 +489,17 @@ private fun BottomLeftVaultCharacterBar(
             modifier = Modifier
                 .fillMaxHeight()
                 .clickable(onClick = onVaultClick)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Canvas(modifier = Modifier.size(20.dp)) {
+            Canvas(modifier = Modifier.size(18.dp)) {
                 drawChestIcon()
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(7.dp))
             Text(
                 text = "COFRE",
                 color = Color.White,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 0.5.sp
             )
@@ -491,24 +507,24 @@ private fun BottomLeftVaultCharacterBar(
         Box(
             modifier = Modifier
                 .width(1.dp)
-                .height(20.dp)
-                .background(ColBorderLight)
+                .height(18.dp)
+                .background(Color(0xFF384358))
         )
         Row(
             modifier = Modifier
                 .fillMaxHeight()
                 .clickable(onClick = onCharacterClick)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Canvas(modifier = Modifier.size(19.dp)) {
+            Canvas(modifier = Modifier.size(18.dp)) {
                 drawShirtIcon(Color.White)
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(7.dp))
             Text(
                 text = "PERSONAGEM",
                 color = Color.White,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 0.5.sp
             )
@@ -526,7 +542,7 @@ private fun RightMatchmakingPanel(
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val cardWidth = 236.dp
+    val cardWidth = 242.dp
     Column(
         modifier = modifier.width(cardWidth),
         horizontalAlignment = Alignment.End
@@ -592,7 +608,7 @@ private fun RightMatchmakingPanel(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(42.dp)
             ) {
                 drawMapPreviewBanner()
             }
@@ -628,15 +644,15 @@ private fun RightMatchmakingPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(7.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // Botão amarelo grande: ▶ JOGAR
+        // Botão amarelo grande tático: ▶ JOGAR
         TacticalPlayButton(
             searching = searching,
             onClick = onPlayClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
+                .height(52.dp)
         )
     }
 }
@@ -651,16 +667,16 @@ private fun ModeTabItem(
 ) {
     val shape = RoundedCornerShape(5.dp)
     val bg = if (selected) {
-        Brush.verticalGradient(listOf(Color(0xFF3A2B10), Color(0xFF241B0A)))
+        Brush.verticalGradient(listOf(Color(0xFF33230C), Color(0xFF1E1508)))
     } else {
-        Brush.verticalGradient(listOf(Color(0xFF1A2233), Color(0xFF131926)))
+        Brush.verticalGradient(listOf(Color(0xFF161C2A), Color(0xFF111622)))
     }
-    val borderCol = if (selected) ColGold else Color(0xFF323E57)
+    val borderCol = if (selected) ColGold else Color(0xFF2E384C)
     val contentCol = if (selected) ColGoldBright else Color.White
 
     Column(
         modifier = modifier
-            .height(40.dp)
+            .height(38.dp)
             .clip(shape)
             .background(bg)
             .border(if (selected) 1.5.dp else 1.dp, borderCol, shape)
@@ -669,7 +685,7 @@ private fun ModeTabItem(
         verticalArrangement = Arrangement.Center
     ) {
         Canvas(modifier = Modifier.size(width = 24.dp, height = 13.dp)) {
-            drawTeamIcon(Color.White, peopleCount)
+            drawTeamIcon(if (selected) ColGoldBright else Color.White, peopleCount)
         }
         Spacer(modifier = Modifier.height(2.dp))
         Text(
@@ -694,19 +710,26 @@ private fun TacticalPlayButton(
             .background(
                 Brush.verticalGradient(
                     if (searching) listOf(Color(0xFFFF6B4A), Color(0xFFD9381E))
-                    else listOf(ColGoldBright, ColGold, ColGoldDeep)
+                    else listOf(Color(0xFFFDC204), Color(0xFFF0A800), Color(0xFFC87A00))
                 )
             )
-            .border(1.5.dp, Color(0xFF2A1D04), shape)
+            .border(1.8.dp, Color(0xFF221804), shape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Detalhes táticos nas bordas como na imagem de referência
-            val dark = Color(0x44000000)
-            drawRect(dark, topLeft = Offset(0f, 0f), size = Size(size.width, 2.dp.toPx()))
-            drawRect(dark, topLeft = Offset(0f, size.height - 3.dp.toPx()), size = Size(size.width, 3.dp.toPx()))
-            drawLine(Color(0x88FFF6B0), Offset(8.dp.toPx(), 3.dp.toPx()), Offset(size.width - 8.dp.toPx(), 3.dp.toPx()), strokeWidth = 1.5f)
+            val dark = Color(0x3B000000)
+            val w = size.width
+            val h = size.height
+            // Detalhes táticos e marcas de desgaste "grunge" inspiradas na referência
+            drawRect(dark, topLeft = Offset(0f, 0f), size = Size(w, 2.5.dp.toPx()))
+            drawRect(dark, topLeft = Offset(0f, h - 3.dp.toPx()), size = Size(w, 3.dp.toPx()))
+            drawLine(Color(0x77FFF7B8), Offset(10.dp.toPx(), 3.5.dp.toPx()), Offset(w - 10.dp.toPx(), 3.5.dp.toPx()), strokeWidth = 1.5f)
+            // Marcas sutis de desgaste angular nos cantos
+            drawRect(Color(0x55000000), topLeft = Offset(2.dp.toPx(), 2.dp.toPx()), size = Size(4.dp.toPx(), 4.dp.toPx()))
+            drawRect(Color(0x55000000), topLeft = Offset(w - 6.dp.toPx(), 2.dp.toPx()), size = Size(4.dp.toPx(), 4.dp.toPx()))
+            drawRect(Color(0x55000000), topLeft = Offset(2.dp.toPx(), h - 6.dp.toPx()), size = Size(4.dp.toPx(), 4.dp.toPx()))
+            drawRect(Color(0x55000000), topLeft = Offset(w - 6.dp.toPx(), h - 6.dp.toPx()), size = Size(4.dp.toPx(), 4.dp.toPx()))
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
