@@ -1396,7 +1396,10 @@ void Game::updateHud() {
     hud_[H_KILLS] = self_[10];
     Vec3 rpos = visualPlayerPos();
     hud_[H_PLAYER_X] = rpos.x;
+    hud_[H_PLAYER_Y] = rpos.y;
     hud_[H_PLAYER_Z] = rpos.z;
+    hud_[H_FLIGHT] = float(battle_ ? predictedFlight_ : 3);
+    hud_[H_PHASE] = float(battle_ && !snapshot_.empty() ? int(snapshot_[1]) : 0);
     hud_[H_CAM_YAW] = camYaw_;
     hud_[H_WORLD_SIZE] = 1440;
     hud_[H_AIM] = aimBlend_;

@@ -29,6 +29,9 @@ object Hud {
     const val ARMOR=24
     const val ARMOR_MAX=25
     const val CLIPS=26
+    const val FLIGHT=27
+    const val PHASE=28
+    const val PLAYER_Y=29
     const val INV=34
     const val FPS=82
     const val TARGET_LOCKED=83

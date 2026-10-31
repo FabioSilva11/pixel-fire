@@ -98,6 +98,27 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
     private val throwAiming get() = touches.values.any { it.role == Role.GRENADE }
     private var reviveTarget = -1
     private var reviveHeld = false
+    private val planeJumpRect = RectF()
+    private val planeJumpTouchArea = RectF()
+    private val chuteButtonRect = RectF()
+    private val chuteTouchArea = RectF()
+
+    val flight: Int
+        get() {
+            if (editing) return 3
+            val state = battle
+            val me = own()
+            if (state != null && me >= 0) {
+                val netFlight = state[me + 11].toInt()
+                val localFlight = hud[Hud.FLIGHT].toInt()
+                if (localFlight in 0..3) {
+                    return if (netFlight == 0 && localFlight > 0) localFlight else netFlight
+                }
+                return netFlight
+            }
+            val localFlight = hud[Hud.FLIGHT].toInt()
+            return if (localFlight in 0..3) localFlight else 3
+        }
 
     fun updateBattle(value: FloatArray, id: Int, ping: Int) {
         battle = value
@@ -334,8 +355,20 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
 
     private fun available(c: HudControl): Boolean {
         if (!g(c).visible) return false
+        if (editing) return true
+        if (flight < 3) {
+            // Enquanto estiver no avião ou em descida (antes de aterrisar):
+            // - No avião (flight == 0): apenas MAP e PAUSE
+            // - Em queda livre / paraquedas (flight in 1..2): MAP, PAUSE e JOYSTICK (para direcionar a descida)
+            // - Todos os controles terrestres (FIRE, AIM, JUMP, RELOAD, CROUCH, SPRINT, MELEE, GRENADE, MEDKIT, WEAPON, HOTBAR, BAG, EMOTE) ficam ocultos!
+            return when (c) {
+                HudControl.MAP, HudControl.PAUSE -> true
+                HudControl.JOYSTICK -> flight in 1..2
+                else -> false
+            }
+        }
         return when (c) {
-            HudControl.HOTBAR, HudControl.BAG -> editing || inventoryOn
+            HudControl.HOTBAR, HudControl.BAG -> inventoryOn
             else -> true
         }
     }
@@ -363,6 +396,21 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
     private fun roleAt(x: Float, y: Float): Role {
         val w = width.toFloat()
         val h = height.toFloat()
+        if (!editing && flight == 0) {
+            // No avião: botão de saltar, mapa, pausa ou olhar em volta
+            if (planeJumpTouchArea.contains(x, y)) return Role.JUMP
+            if (touchHit(HudControl.MAP, x, y)) return Role.MAP
+            if (touchHit(HudControl.PAUSE, x, y)) return Role.PAUSE
+            return Role.LOOK
+        }
+        if (!editing && flight in 1..2) {
+            // Em queda livre / paraquedas: botão de abrir paraquedas, mapa, pausa, joystick ou olhar
+            if (chuteTouchArea.contains(x, y)) return Role.JUMP
+            if (touchHit(HudControl.MAP, x, y)) return Role.MAP
+            if (touchHit(HudControl.PAUSE, x, y)) return Role.PAUSE
+            if (HudGestures.joystickRegion(x, y, w, h, stickHomeX, touches.values.any { it.role == Role.JOYSTICK })) return Role.JOYSTICK
+            return Role.LOOK
+        }
         if (reviveTarget >= 0 && !throwAiming && reviveRect().contains(x, y)) return Role.REVIVE
         if (emoteOpen && emoteItemAt(x, y) >= 0) return Role.EMOTE_ITEM
         if (available(HudControl.WEAPON) && weaponSlotAt(x, y) >= 0) return Role.WEAPON_SLOT
@@ -406,12 +454,18 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
                         haptic(false)
                     }
                     Role.JUMP -> {
-                        val state = battle
-                        val me = own()
-                        if (state != null && me >= 0 && state[me + 11].toInt() in 1..2)
+                        val f = flight
+                        if (f == 0) {
+                            NativeBridge.pressJump()
+                            haptic(true)
+                            message("SALTANDO DO AVIÃO!", Palette.gold)
+                        } else if (f in 1..2) {
                             NativeBridge.battleAction(2048)
-                        else NativeBridge.pressJump()
-                        haptic(false)
+                            haptic(true)
+                        } else {
+                            NativeBridge.pressJump()
+                            haptic(false)
+                        }
                     }
                     Role.RELOAD -> { NativeBridge.pressReload(); haptic(false) }
                     Role.CROUCH -> { NativeBridge.toggleCrouch(); haptic(false) }
@@ -520,14 +574,20 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
         drawVignette(canvas, w, h, health / maxHealth)
         drawDamageDirection(canvas, w, h)
         drawWorldLabels(canvas, w, h)
-        drawReticle(canvas, w, h)
+        if (flight == 3 || editing) {
+            drawReticle(canvas, w, h)
+            drawStatus(canvas, health, maxHealth)
+            drawThrowAim(canvas, w, h)
+        }
         if (available(HudControl.MAP)) drawMinimap(canvas)
-        drawStatus(canvas, health, maxHealth)
         drawBattleStatus(canvas, w, h)
         drawFeed(canvas, w, h)
         drawTip(canvas, w, h)
-        drawThrowAim(canvas, w, h)
         drawControls(canvas)
+        if (!editing) {
+            if (flight == 0) drawPlaneJumpButton(canvas, w, h)
+            else if (flight in 1..2) drawDescentControls(canvas, w, h)
+        }
         if (showFps) {
             textPaint.textAlign = Paint.Align.RIGHT
             textPaint.textSize = d(10f); textPaint.color = Palette.muted
@@ -875,7 +935,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
         if (available(HudControl.WEAPON)) drawWeaponPanel(canvas)
         if (available(HudControl.EMOTE)) drawEmote(canvas)
         if (available(HudControl.PAUSE)) drawPause(canvas)
-        drawClock(canvas)
+        if (flight == 3 || editing) drawClock(canvas)
         if (available(HudControl.HOTBAR)) drawHotbar(canvas)
         if (available(HudControl.BAG)) drawBag(canvas)
         if (save >= 0) canvas.restoreToCount(save)
@@ -985,6 +1045,7 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
     }
 
     private fun drawJoystick(canvas: Canvas) {
+        if (!editing && flight == 0) return
         val lit = stickActive || autoRun
         if (!g(HudControl.JOYSTICK).visible && !lit) return
         // Parado: anel pequeno no canto (E24 da referência). Em uso: o anel inteiro onde o polegar tocou.
@@ -1067,6 +1128,200 @@ class HudView(context: Context, private val listener: Listener) : View(context) 
         val gc = g(HudControl.JUMP)
         drawButton(canvas, gc.x, gc.y, gc.r, Color.WHITE, false)
         drawJumpFigure(canvas, gc.x, gc.y, iconUnit(gc) * 1.1f, ICON)
+    }
+
+    private fun drawPlaneJumpButton(canvas: Canvas, w: Float, h: Float) {
+        val cx = w - d(145f)
+        val cy = h * 0.58f
+        val btnW = d(180f)
+        val btnH = d(60f)
+        val left = cx - btnW / 2f
+        val top = cy - btnH / 2f
+        val right = cx + btnW / 2f
+        val bottom = cy + btnH / 2f
+        planeJumpRect.set(left, top, right, bottom)
+        planeJumpTouchArea.set(left - d(20f), top - d(20f), right + d(20f), bottom + d(20f))
+
+        val now = SystemClock.elapsedRealtime()
+        val pulse = (sin(now * 0.0055f) * 0.2f + 0.8f)
+
+        // 1. Halo luminoso pulsante amarelo âmbar
+        p.style = Paint.Style.FILL
+        p.color = Color.argb((55 * pulse).toInt(), 255, 195, 20)
+        rect.set(left - d(8f), top - d(8f), right + d(8f), bottom + d(8f))
+        canvas.drawRoundRect(rect, d(20f), d(20f), p)
+
+        // 2. Fundo gradiente tático amarelo ouro / âmbar
+        val pressed = touches.values.any { planeJumpTouchArea.contains(it.x, it.y) }
+        val topC = if (pressed) Color.rgb(230, 145, 0) else Color.rgb(255, 200, 25)
+        val botC = if (pressed) Color.rgb(180, 85, 0) else Color.rgb(225, 125, 0)
+        p.shader = LinearGradient(left, top, left, bottom, topC, botC, Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(planeJumpRect, d(14f), d(14f), p)
+        p.shader = null
+
+        // 3. Moldura de precisão metálica
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = d(2.5f)
+        p.color = if (pressed) Color.WHITE else Color.rgb(255, 245, 160)
+        canvas.drawRoundRect(planeJumpRect, d(14f), d(14f), p)
+
+        // Linha interna decorativa militar
+        p.strokeWidth = d(1f)
+        p.color = Color.argb(90, 0, 0, 0)
+        rect.set(left + d(3f), top + d(3f), right - d(3f), bottom - d(3f))
+        canvas.drawRoundRect(rect, d(11f), d(11f), p)
+        p.style = Paint.Style.FILL
+
+        // 4. Ícone de Paraquedista / Salto
+        val iconCx = left + d(36f)
+        val iconCy = cy
+        val u = d(1.2f)
+
+        // Paraquedas estilizado
+        p.color = Color.rgb(30, 22, 10)
+        rect.set(iconCx - 14f * u, iconCy - 15f * u, iconCx + 14f * u, iconCy - 1f * u)
+        canvas.drawArc(rect, 180f, 180f, true, p)
+        // Cordas do paraquedas
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 1.4f * u
+        canvas.drawLine(iconCx - 12f * u, iconCy - 2f * u, iconCx, iconCy + 9f * u, p)
+        canvas.drawLine(iconCx - 4f * u, iconCy - 2f * u, iconCx, iconCy + 9f * u, p)
+        canvas.drawLine(iconCx + 4f * u, iconCy - 2f * u, iconCx, iconCy + 9f * u, p)
+        canvas.drawLine(iconCx + 12f * u, iconCy - 2f * u, iconCx, iconCy + 9f * u, p)
+        p.style = Paint.Style.FILL
+        // Ponto do paraquedista
+        canvas.drawCircle(iconCx, iconCy + 10.5f * u, 2.5f * u, p)
+
+        // 5. Textos principais do botão
+        textPaint.textAlign = Paint.Align.LEFT
+        textPaint.typeface = Fonts.bold
+        textPaint.textSize = d(19f)
+        textPaint.color = Color.rgb(28, 20, 10)
+        textPaint.setShadowLayer(d(1.2f), 0f, d(1f), Color.argb(100, 255, 255, 255))
+        canvas.drawText("SALTAR", iconCx + d(22f), cy + d(3f), textPaint)
+        textPaint.clearShadowLayer()
+
+        textPaint.textSize = d(8.5f)
+        textPaint.color = Color.rgb(65, 45, 15)
+        canvas.drawText("DO AVIÃO", iconCx + d(24f), cy + d(15f), textPaint)
+
+        // 6. Placa de Telemetria de Voo acima do botão
+        val cardW = d(190f)
+        val cardH = d(28f)
+        val cardL = cx - cardW / 2f
+        val cardT = top - d(36f)
+        rect.set(cardL, cardT, cardL + cardW, cardT + cardH)
+        p.color = Color.argb(190, 16, 20, 26)
+        canvas.drawRoundRect(rect, d(6f), d(6f), p)
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = d(1f)
+        p.color = Color.argb(130, 255, 195, 20)
+        canvas.drawRoundRect(rect, d(6f), d(6f), p)
+        p.style = Paint.Style.FILL
+
+        textPaint.textAlign = Paint.Align.CENTER
+        textPaint.typeface = Fonts.title
+        textPaint.textSize = d(10.5f)
+        textPaint.color = Color.WHITE
+        canvas.drawText("✈ SOBREVOANDO A ILHA", cx, cardT + d(18f), textPaint)
+    }
+
+    private fun drawDescentControls(canvas: Canvas, w: Float, h: Float) {
+        val cx = w - d(145f)
+        val cy = h * 0.58f
+        val btnW = d(180f)
+        val btnH = d(56f)
+        val left = cx - btnW / 2f
+        val top = cy - btnH / 2f
+        val right = cx + btnW / 2f
+        val bottom = cy + btnH / 2f
+
+        val f = flight
+        if (f == 1) { // Queda Livre (FREEFALL)
+            chuteButtonRect.set(left, top, right, bottom)
+            chuteTouchArea.set(left - d(20f), top - d(20f), right + d(20f), bottom + d(20f))
+
+            val pressed = touches.values.any { chuteTouchArea.contains(it.x, it.y) }
+            val now = SystemClock.elapsedRealtime()
+            val pulse = (sin(now * 0.007f) * 0.2f + 0.8f)
+
+            // Halo ciano
+            p.style = Paint.Style.FILL
+            p.color = Color.argb((60 * pulse).toInt(), 0, 180, 216)
+            rect.set(left - d(6f), top - d(6f), right + d(6f), bottom + d(6f))
+            canvas.drawRoundRect(rect, d(18f), d(18f), p)
+
+            // Fundo ciano tático
+            val topC = if (pressed) Color.rgb(0, 140, 180) else Color.rgb(0, 190, 225)
+            val botC = if (pressed) Color.rgb(0, 95, 145) else Color.rgb(0, 130, 190)
+            p.shader = LinearGradient(left, top, left, bottom, topC, botC, Shader.TileMode.CLAMP)
+            canvas.drawRoundRect(chuteButtonRect, d(14f), d(14f), p)
+            p.shader = null
+
+            // Borda
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = d(2.2f)
+            p.color = if (pressed) Color.WHITE else Color.rgb(180, 240, 255)
+            canvas.drawRoundRect(chuteButtonRect, d(14f), d(14f), p)
+            p.style = Paint.Style.FILL
+
+            // Texto e Ícone
+            textPaint.textAlign = Paint.Align.CENTER
+            textPaint.typeface = Fonts.bold
+            textPaint.textSize = d(15f)
+            textPaint.color = Color.WHITE
+            canvas.drawText("ABRIR PARAQUEDAS", cx, cy + d(1f), textPaint)
+            textPaint.textSize = d(8.5f)
+            textPaint.color = Color.argb(220, 230, 250, 255)
+            canvas.drawText("TOQUE PARA PLANAR", cx, cy + d(13f), textPaint)
+        } else if (f == 2) { // Paraquedas Aberto (CHUTE)
+            chuteButtonRect.setEmpty()
+            chuteTouchArea.setEmpty()
+            val cardW = d(200f)
+            val cardH = d(36f)
+            val cardL = cx - cardW / 2f
+            val cardT = cy - cardH / 2f
+            rect.set(cardL, cardT, cardL + cardW, cardT + cardH)
+            p.style = Paint.Style.FILL
+            p.color = Color.argb(180, 16, 24, 32)
+            canvas.drawRoundRect(rect, d(8f), d(8f), p)
+            p.style = Paint.Style.STROKE
+            p.strokeWidth = d(1.2f)
+            p.color = Color.rgb(0, 180, 216)
+            canvas.drawRoundRect(rect, d(8f), d(8f), p)
+            p.style = Paint.Style.FILL
+
+            textPaint.textAlign = Paint.Align.CENTER
+            textPaint.typeface = Fonts.bold
+            textPaint.textSize = d(12f)
+            textPaint.color = Color.rgb(0, 220, 255)
+            canvas.drawText("PARAQUEDAS ABERTO", cx, cardT + d(15f), textPaint)
+            textPaint.textSize = d(9f)
+            textPaint.color = Color.argb(220, 255, 255, 255)
+            canvas.drawText("DIRECIONE O POUSO NO JOYSTICK", cx, cardT + d(28f), textPaint)
+        }
+
+        // Medidor de altitude do lado direito
+        val alt = hud[Hud.PLAYER_Y].toInt().coerceAtLeast(0)
+        val altCardW = d(110f)
+        val altCardH = d(26f)
+        val altL = cx - altCardW / 2f
+        val altT = top - d(36f)
+        rect.set(altL, altT, altL + altCardW, altT + altCardH)
+        p.style = Paint.Style.FILL
+        p.color = Color.argb(180, 10, 15, 20)
+        canvas.drawRoundRect(rect, d(6f), d(6f), p)
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = d(1f)
+        p.color = Color.argb(120, 255, 255, 255)
+        canvas.drawRoundRect(rect, d(6f), d(6f), p)
+        p.style = Paint.Style.FILL
+
+        textPaint.textAlign = Paint.Align.CENTER
+        textPaint.typeface = Fonts.bold
+        textPaint.textSize = d(11f)
+        textPaint.color = Palette.gold
+        canvas.drawText("ALTITUDE: ${alt}m", cx, altT + d(17f), textPaint)
     }
 
     private fun drawReload(canvas: Canvas) {
